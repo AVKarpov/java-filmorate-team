@@ -2,18 +2,16 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exceptions.SortingIsNotSupportedException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
+import ru.yandex.practicum.filmorate.exceptions.director.DirectorNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.film.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.user.UserNotFoundException;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.MPA;
-import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.film.dao.FilmLikeDao;
-import ru.yandex.practicum.filmorate.storage.film.dao.FilmDao;
-import ru.yandex.practicum.filmorate.storage.film.dao.GenreDao;
-import ru.yandex.practicum.filmorate.storage.film.dao.MpaDao;
+import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.storage.film.dao.*;
+import ru.yandex.practicum.filmorate.storage.film.daoImpl.DirectorDaoImpl;
 import ru.yandex.practicum.filmorate.storage.user.dao.UserDao;
+
 
 import java.util.List;
 import java.util.Set;
@@ -37,12 +35,13 @@ public class FilmService {
                        MpaDao mpaDao,
                        FilmLikeDao filmLikeDao,
                        GenreDao genreDao,
-                       DirectorDaoImpl directorDao) {
+                       DirectorDao directorDao) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.mpaDao = mpaDao;
         this.filmLikeDao = filmLikeDao;
         this.genreDao = genreDao;
+        this.directorDao = directorDao;
     }
 
     //добавляем фильм

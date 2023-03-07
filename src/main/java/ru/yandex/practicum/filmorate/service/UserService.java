@@ -2,8 +2,11 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.exceptions.user.UserNotFoundException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.film.dao.FilmLikeDao;
 import ru.yandex.practicum.filmorate.storage.user.dao.FriendsDao;
 import ru.yandex.practicum.filmorate.storage.user.dao.UserDao;
 
@@ -17,12 +20,12 @@ public class UserService {
 
    private final UserDao userStorage;
    private final FriendsDao friendsDao;
-   private final FilmLikeDbDao filmLikeDbDao;
+   private final FilmLikeDao filmLikeDao;
 
-    public UserService(UserDao userStorage, FriendsDao friendsDao, FilmLikeDbDao filmLikeDbDao) {
+    public UserService(UserDao userStorage, FriendsDao friendsDao, FilmLikeDao filmLikeDao) {
         this.userStorage = userStorage;
         this.friendsDao = friendsDao;
-        this.filmLikeDbDao = filmLikeDbDao;
+        this.filmLikeDao = filmLikeDao;
     }
 
     //добавление пользователя
@@ -81,6 +84,7 @@ public class UserService {
     public List<User> getFriends(long userId) {
         log.debug("Получен запрос на получение для пользователя с id={} списка друзей", userId);
         isValidIdUser(userId);
+        userStorage.getUser(userId);
         return friendsDao.getFriends(userId);
     }
 
@@ -100,7 +104,7 @@ public class UserService {
         long userIdTrue = getDigitOfString(userId);
         log.info("Service: получен запрос на вывод рекомендаций фильмов для userId={}.", userIdTrue);
         isValidIdUser(userIdTrue);
-        return filmLikeDbDao.getRecomendationFilm(userIdTrue);
+        return filmLikeDao.getRecomendationFilm(userIdTrue);
     }
 
     private boolean isValidIdUser(long userId) {

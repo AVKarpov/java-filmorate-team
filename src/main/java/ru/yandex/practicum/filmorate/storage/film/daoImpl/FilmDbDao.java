@@ -9,9 +9,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.film.FilmNotFoundException;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.MPA;
+import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.storage.film.dao.FilmDao;
 import ru.yandex.practicum.filmorate.storage.film.dao.GenreDao;
 import ru.yandex.practicum.filmorate.storage.film.dao.MpaDao;
@@ -195,6 +193,34 @@ public class FilmDbDao implements FilmDao {
     }
 
     @Override
+    public List<Film> getFilms(List<Long> filmsId) {
+        log.debug("FilmDbDao: Получен запрос на чтение нескольких фильмов с определённым filmId");
+        log.debug("FilmDbDao: получены filmsId рекомендуемых фильмов: {}", filmsId.toString());
+        String inSql = String.join(",", Collections.nCopies(filmsId.size(), "?"));
+        String getFilmSql = String.format("select f.FILM_ID\n" +
+                        "  ,f.NAME\n" +
+                        "  ,f.DESCRIPTION \n" +
+                        "  ,f.RELEASE_DATE \n" +
+                        "  ,f.DURATION \n" +
+                        "  ,f.RATE\n" +
+                        "  ,rm.RATING_ID\n" +
+                        "  ,rm.RATING_NAME\n" +
+                        "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
+                        "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
+                        "from films f LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
+                        "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
+                        "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
+                        "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
+                        "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
+                        "WHERE f.FILM_ID IN (%s)" +
+                        "GROUP BY f.FILM_ID;", inSql);
+        //запрашиваем все фильмы с жанрами и рейтингом MPA
+        List<Film> films = jdbcTemplate.query(getFilmSql, (rs, rowNum) -> filmMapper(rs), filmsId.toArray());
+        log.debug("Получен список из {} фильмов.", films.size());
+        return films;
+    }
+
+    @Override
     public List<Film> getPopularFilms(long maxCount) {
         String popFilmSql = "select f.FILM_ID\n" +
                 "  ,f.NAME\n" +
@@ -229,9 +255,10 @@ public class FilmDbDao implements FilmDao {
         for (Film film : popFilms) {
             log.debug("Фильм с film_id={}: {}", film.getId(), film);
         }
-
         return popFilms;
     }
+
+
     public List<Film> getFilmsRatingSort(String sql, Object[] args) {
         Map<Long, Integer> filmsId = jdbcTemplate.query(sql, (rs, rowNum) -> filmRatingMapper(rs), args)
                 .stream()
@@ -319,24 +346,64 @@ public class FilmDbDao implements FilmDao {
 
     private Film filmMapper(ResultSet rs) throws SQLException {
         //перебираем записи результирующего набора
-        long id = rs.getLong("film_id");
-        String name = rs.getString("name");
-        String description = rs.getString("description");
-        LocalDate releaseDate = rs.getDate("release_date").toLocalDate();
-        int duration = rs.getInt("duration");
-        int rate = rs.getInt("rate");
         MPA mpa = new MPA();
         mpa.setId(rs.getInt("rating_id"));
         mpa.setName(rs.getString("rating_name"));
-        int genreId = rs.getInt("genre_id");
-        log.debug("Получен жанр фильма с film_id={} - genre_id={}", id, genreId);
-        Set<Genre> genres = new HashSet<>();
-        if (genreId > 0) {
-            genres.add(new Genre(genreId, rs.getString("genre_name")));
-        }
-        return new Film(id, name, description, releaseDate, duration, rate, mpa, genres);
+
+        return Film.builder()
+                .id(rs.getLong("film_id"))
+                .name(rs.getString("name"))
+                .description(rs.getString("description"))
+                .releaseDate(rs.getDate("release_date").toLocalDate())
+                .duration(rs.getInt("duration"))
+                .rate(rs.getInt("rate"))
+                .mpa(mpa)
+                .genres(getGenresFromResultSet(rs))
+                .directors(getDirectorsFromResultSet(rs))
+                .build();
     }
 
+    private Set<Director> getDirectorsFromResultSet(ResultSet rs) throws SQLException {
+        Set<Director> directors = new HashSet<>();
+
+        String allFilmDirectors = rs.getString("DIRECTOR_ID_NAME");
+
+        if(allFilmDirectors == null || allFilmDirectors.isEmpty() || allFilmDirectors.isBlank() || allFilmDirectors.equals("-"))
+            return directors;
+
+        for (String filmDirector : allFilmDirectors.split(",")) {
+            String[] strings = filmDirector.split("-");
+            directors.add(
+                    Director.builder()
+                            .id(Integer.parseInt(strings[0]))
+                            .name(strings[1])
+                            .build()
+            );
+        }
+
+        return directors;
+    }
+
+    private Set<Genre> getGenresFromResultSet(ResultSet rs) throws SQLException {
+        Set<Genre> genres = new HashSet<>();
+
+        String allFilmGenres = rs.getString("GENRE_ID_NAME");
+
+        if (allFilmGenres == null || allFilmGenres.isEmpty() || allFilmGenres.isBlank() || allFilmGenres.equals("-"))
+            return genres;
+
+        for (String filmGenre : allFilmGenres.split(",")) {
+            String[] strings = filmGenre.split("-");
+            genres.add(
+                    Genre.builder()
+                            .id(Integer.parseInt(strings[0]))
+                            .name(strings[1])
+                            .build()
+            );
+        }
+
+        return genres;
+    }
     private void addDirectors(Set<Director> directors, long filmId) {
         log.debug("Request to add directors to DB.");
 
