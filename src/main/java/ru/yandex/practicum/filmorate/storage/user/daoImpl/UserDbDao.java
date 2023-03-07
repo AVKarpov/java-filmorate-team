@@ -17,6 +17,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -115,7 +116,7 @@ public class UserDbDao implements UserDao {
     @Override
     public void deleteUser(long userId) {
         log.debug("Получен запрос на удаление пользователя с id={}", userId);
-        String deleteUserSql = "DELETE FROM user WHERE user_id= ?";
+        String deleteUserSql = "DELETE FROM users WHERE user_id= ?";
         int delRow = jdbcTemplate.update(deleteUserSql, userId);
         if (delRow <= 0) {
             log.debug("Пользователь с id={} для удаления не найден.", userId);
