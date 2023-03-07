@@ -12,12 +12,10 @@ import ru.yandex.practicum.filmorate.storage.film.dao.*;
 import ru.yandex.practicum.filmorate.storage.film.daoImpl.DirectorDaoImpl;
 import ru.yandex.practicum.filmorate.storage.user.dao.UserDao;
 
-
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 //отвечает за операции с фильмами, — добавление и удаление лайка, вывод 10 наиболее популярных фильмов
 // по количеству лайков. Пусть пока каждый пользователь может поставить лайк фильму только один раз.
@@ -37,7 +35,7 @@ public class FilmService {
                        MpaDao mpaDao,
                        FilmLikeDao filmLikeDao,
                        GenreDao genreDao,
-                       DirectorDao directorDao) {
+                       DirectorDaoImpl directorDao) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.mpaDao = mpaDao;
@@ -161,18 +159,34 @@ public class FilmService {
         return filmStorage.getDirectorsFilms(directorId, sortBy);
     }
 
-    //вернуть общие фильмы для пользователей
-    public List<Film> getCommonFilms(Optional<String> userId, Optional<String> friendId) {
-        log.info("FilmService: Запрошены общие фильмы пользователей.");
-        long userIdTrue = getDigitOfString(userId);
-        long friendIdTrue = getDigitOfString(friendId);
-        //проверка значений userId и friendId как на значение >0, так и на соответствие Long
-        log.info("FilmService: Запрос на получение общих фильмов пользователей с userId={} и friendId={}..."
-                , userIdTrue, friendIdTrue);
-        isValidUserId(userIdTrue);
-        isValidUserId(friendIdTrue);
-        isNotEqualIdUser(userIdTrue, friendIdTrue);
-        return filmStorage.getCommonFilms(userIdTrue, friendIdTrue);
+    @Override
+    public List<Film> getRecomendationFilm(long userId) {
+        String getSql = "SELECT a.film_id,count(fl.FILM_ID) rating\n" +
+                "FROM (SELECT DISTINCT fl.film_id\n" +
+                "FROM (\n" +
+                "SELECT gcf.user_id\n" +
+                "FROM (SELECT ccf.user_id\n" +
+                ",ccf.count_films\n" +
+                ",RANK() OVER(ORDER BY count_films desc) AS group_num\n" +
+                "FROM (\n" +
+                "SELECT fl.USER_ID\n" +
+                ",count(*) AS count_films\n" +
+                "FROM (SELECT FILM_ID FROM films_like WHERE USER_ID =?) AS US\n" +
+                "INNER JOIN \n" +
+                "films_like AS FL ON us.film_id=fl.FILM_ID\n" +
+                "WHERE fl.USER_ID <>?\n" +
+                "GROUP BY fl.USER_ID ) ccf\n" +
+                ") gcf\n" +
+                "WHERE gcf.group_num=1\n" +
+                ") ou\n" +
+                "LEFT JOIN films_like fl ON ou.user_id=fl.user_id\n" +
+                "LEFT JOIN (SELECT FILM_ID FROM films_like WHERE USER_ID =?) us\n" +
+                "ON fl.film_id=us.film_id \n" +
+                "WHERE us.film_id IS NULL ) a\n" +
+                "LEFT JOIN FILMS_LIKE fl ON a.film_id=fl.FILM_ID \n" +
+                "GROUP BY fl.FILM_ID\n";
+        Object[] args = new Object[]{userId,userId,userId};
+        return filmDbDao.getFilmsRatingSort(getSql,args);
     }
 
     //проверка корректности значений filmId
@@ -252,4 +266,7 @@ public class FilmService {
         }
     }
 
+    public List<Film> searchFilms(Optional<String> query, List<String> by) {
+        return filmStorage.searchFilms(query,by);
+    }
 }

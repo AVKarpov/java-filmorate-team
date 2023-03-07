@@ -47,13 +47,13 @@ public class ErrorHandler {
         return new ErrorResponse("некорректный параметр", e.getMessage());
     }
 
-    /*
+
     @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleOtherThrows(final Throwable e) {
         return new ErrorResponse("иные ошибки", e.getMessage());
     }
-     */
+
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)

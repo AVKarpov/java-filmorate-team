@@ -1,13 +1,13 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import javax.validation.Valid;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/films")
@@ -23,28 +23,28 @@ public class FilmController {
     //добавление фильма
     @PostMapping
     protected Film addFilm(@Valid @RequestBody Film film) {
-        log.info("Получен запрос на добавление фильма: {}",film.getName());
+        log.info("Получен запрос на добавление фильма: {}", film.getName());
         return filmService.addFilm(film);
     }
 
     //обновление фильма
     @PutMapping
     protected Film updateFilm(@Valid @RequestBody Film film) {
-        log.info("Получен запрос на обновление фильма: {}",film.getId());
+        log.info("Получен запрос на обновление фильма: {}", film.getId());
         return filmService.updateFilm(film);
     }
 
     //удаление фильма по id
     @DeleteMapping("/{id}")
     protected void deleteFilm(@PathVariable("id") long filmId) {
-        log.info("Получен запрос на удаление фильма: {}",filmId);
+        log.info("Получен запрос на удаление фильма: {}", filmId);
         filmService.deleteFilm(filmId);
     }
 
     //получение фильма по id
     @GetMapping("/{id}")
     protected Film getFilm(@PathVariable("id") long filmId) {
-        log.info("Получен запрос на чтение фильма с id={}",filmId);
+        log.info("Получен запрос на чтение фильма с id={}", filmId);
         return filmService.getFilm(filmId);
     }
 
@@ -89,5 +89,12 @@ public class FilmController {
                                           @RequestParam String sortBy) {
         log.debug("Request to get directors films. SortBy = " + sortBy + ".");
         return filmService.getDirectorFilms(directorId, sortBy);
+    }
+
+    @GetMapping("/search")
+    protected List<Film> searchFilms(@RequestParam(name = "query") Optional<String> query,
+                                     @RequestParam(required = false, name = "by") List<String> by) {
+        log.info("Запрос на поиск фильмов...");
+        return filmService.searchFilms(query, by);
     }
 }
