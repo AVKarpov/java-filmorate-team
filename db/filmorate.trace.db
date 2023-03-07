@@ -34136,3 +34136,19 @@ Invalid value "1" for parameter "parameterIndex" [90008-214]
 	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
 	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
 	at java.base/java.lang.Thread.run(Thread.java:833)
+2023-03-07 22:39:48 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Синтаксическая ошибка в выражении SQL "DELETE FROM [*]user WHERE user_id= ?"; ожидалось "identifier"
+Syntax error in SQL statement "DELETE FROM [*]user WHERE user_id= ?"; expected "identifier"; SQL statement:
+DELETE FROM user WHERE user_id= ? [42001-214]
+2023-03-07 22:57:54 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Синтаксическая ошибка в выражении SQL "DELETE FROM [*]user WHERE user_id= ?"; ожидалось "identifier"
+Syntax error in SQL statement "DELETE FROM [*]user WHERE user_id= ?"; expected "identifier"; SQL statement:
+DELETE FROM user WHERE user_id= ? [42001-214]
+2023-03-07 23:00:38 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Синтаксическая ошибка в выражении SQL "DELETE FROM [*]user WHERE user_id= ?"; ожидалось "identifier"
+Syntax error in SQL statement "DELETE FROM [*]user WHERE user_id= ?"; expected "identifier"; SQL statement:
+DELETE FROM user WHERE user_id= ? [42001-214]
+2023-03-07 23:06:21 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Синтаксическая ошибка в выражении SQL "DELETE FROM [*]user WHERE user_id= ?"; ожидалось "identifier"
+Syntax error in SQL statement "DELETE FROM [*]user WHERE user_id= ?"; expected "identifier"; SQL statement:
+DELETE FROM user WHERE user_id= ? [42001-214]
