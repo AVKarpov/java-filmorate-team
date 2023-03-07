@@ -409,7 +409,7 @@ public class FilmDbDao implements FilmDao {
         if (query.get().isEmpty() || query.get().equals(" ")) {
             return searchedFilms;
         }
-        String stringInSql = query.get().toLowerCase();
+        String stringInSql = "%" + query.get().toLowerCase() + "%";
         String searchFilmsSqlByName = "select f.FILM_ID\n" +
                 "  ,f.NAME\n" +
                 "  ,f.DESCRIPTION \n" +
@@ -436,7 +436,7 @@ public class FilmDbDao implements FilmDao {
                 "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
                 "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
                 "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
-                "WHERE LOWER(f.NAME) LIKE '%" + stringInSql + "%'\n" +
+                "WHERE LOWER(f.NAME) LIKE ?\n" +
                 "GROUP BY f.FILM_ID\n" +
                 "ORDER BY f.FILM_ID DESC;";
         String searchFilmsSqlByDirector = "select f.FILM_ID\n" +
@@ -465,7 +465,7 @@ public class FilmDbDao implements FilmDao {
                 "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
                 "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
                 "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
-                "WHERE LOWER(d.NAME) LIKE '%" + stringInSql + "%'\n" +
+                "WHERE LOWER(d.NAME) LIKE ?\n" +
                 "GROUP BY f.FILM_ID\n" +
                 "ORDER BY f.FILM_ID DESC;";
         String searchFilmsSqlByAll = "select f.FILM_ID\n" +
@@ -494,33 +494,38 @@ public class FilmDbDao implements FilmDao {
                 "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
                 "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
                 "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
-                "WHERE LOWER(d.NAME) LIKE '%" + stringInSql + "%'\n" +
-                "OR LOWER(f.NAME) LIKE '%" + stringInSql + "%'\n" +
+                "WHERE LOWER(f.NAME) LIKE ?\n" +
+                "OR LOWER(d.NAME) LIKE ?\n" +
                 "GROUP BY f.FILM_ID\n" +
                 "ORDER BY f.FILM_ID DESC;";
         if (by != null) {
             log.debug("Получен запрос с параметром by");
             if (by.size() == 1 & by.contains("title")) {
                 log.debug("Получен запрос на поиск фильма по названию");
-                return getSearchedFilms(searchFilmsSqlByName);
+                return getSearchedFilms(searchFilmsSqlByName, stringInSql);
             }
             if (by.size() == 1 & by.contains("director")) {
                 log.debug("Получен запрос на поиск фильма по имени режиссера");
-                return getSearchedFilms(searchFilmsSqlByDirector);
+                return getSearchedFilms(searchFilmsSqlByDirector, stringInSql);
             }
             if (by.size() == 2 & by.contains("title") & by.contains("director")) {
                 log.debug("Получен запрос на поиск фильма по имени режиссера и по названию фильма");
-                return getSearchedFilms(searchFilmsSqlByAll);
+                searchedFilms = jdbcTemplate.query(searchFilmsSqlByAll, (rs, rowNum) -> filmMapper(rs), stringInSql, stringInSql);
+                log.debug("Результаты поиска:");
+                for (Film film : searchedFilms) {
+                    log.debug("Фильм с film_id={}: {}", film.getId(), film);
+                }
+                return searchedFilms;
             } else {
                 throw new IllegalArgumentException("Передан некорректный параметр by!");
             }
         }
         log.debug("Получен запрос без параметра by, выполнен поиск по умолчанию");
-        return getSearchedFilms(searchFilmsSqlByName);
+        return getSearchedFilms(searchFilmsSqlByName, stringInSql);
     }
 
-    private List<Film> getSearchedFilms(String sql) {
-        List<Film> searchedFilms = jdbcTemplate.query(sql, (rs, rowNum) -> filmMapper(rs));
+    private List<Film> getSearchedFilms(String sql, String stringInSql) {
+        List<Film> searchedFilms = jdbcTemplate.query(sql, (rs, rowNum) -> filmMapper(rs), stringInSql);
         log.debug("Результаты поиска:");
         for (Film film : searchedFilms) {
             log.debug("Фильм с film_id={}: {}", film.getId(), film);

@@ -19,9 +19,12 @@ public interface FilmDao {
     void deleteFilm(long filmId);
 
     Film getFilm(long filmId);
+
     List<Film> getFilms();
+
     List<Film> getPopularFilms(long maxCount);
 
     List<Film> getDirectorsFilms(int directorId, String sortBy);
+
     List<Film> searchFilms(Optional<String> query, List<String> by);
 }
