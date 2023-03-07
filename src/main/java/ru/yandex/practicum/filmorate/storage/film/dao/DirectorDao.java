@@ -17,6 +17,4 @@ public interface DirectorDao {
 	Director updateDirector(Director director);
 
 	void deleteDirector(int directorId);
-
-	boolean contains(Director director);
 }

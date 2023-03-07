@@ -8,6 +8,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exceptions.director.DirectorAlreadyExistException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.dao.DirectorDao;
@@ -56,20 +57,22 @@ public class DirectorDaoImpl implements DirectorDao {
 
 	@Override
 	public Director addDirector(Director director) {
-		log.debug("Request to add director to DB.");
+		log.debug("Request to add director to DB {}.", director);
+
+		if (contains(director))
+			throw new DirectorAlreadyExistException("Director with name = " + director.getName()
+					+ " is already exist.");
 
 		String sql = "INSERT INTO directors (name) " +
 				"VALUES (?);";
 
 		KeyHolder keyHolder = new GeneratedKeyHolder();
 		jdbcTemplate.update(
-				new PreparedStatementCreator() {
-					public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
-						PreparedStatement ps =
-								connection.prepareStatement(sql, new String[]{"director_id"});
-						ps.setString(1, director.getName());
-						return ps;
-					}
+				connection -> {
+					PreparedStatement ps =
+							connection.prepareStatement(sql, new String[]{"director_id"});
+					ps.setString(1, director.getName());
+					return ps;
 				},
 				keyHolder);
 		int directorId = keyHolder.getKey().intValue();
@@ -99,8 +102,7 @@ public class DirectorDaoImpl implements DirectorDao {
 		jdbcTemplate.update(sql, directorId);
 	}
 
-	@Override
-	public boolean contains(Director director) {
+	private boolean contains(Director director) {
 		log.debug("Checking that the director with name = {} is in DB.", director.getName());
 
 		String sql = "SELECT * " +
@@ -113,12 +115,9 @@ public class DirectorDaoImpl implements DirectorDao {
 	private Director makeDirector(ResultSet rs) throws SQLException {
 		log.debug("Request to makeDirector from DB.");
 
-		int id = rs.getInt("director_id");
-		String name = rs.getString("name");
-
 		return Director.builder()
-				.id(id)
-				.name(name)
+				.id(rs.getInt("director_id"))
+				.name(rs.getString("name"))
 				.build();
 	}
 }

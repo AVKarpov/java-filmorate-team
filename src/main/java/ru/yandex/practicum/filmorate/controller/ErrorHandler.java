@@ -53,7 +53,6 @@ public class ErrorHandler {
     public ErrorResponse handleOtherThrows(final Throwable e) {
         return new ErrorResponse("иные ошибки", e.getMessage());
     }
-
      */
 
     @ExceptionHandler

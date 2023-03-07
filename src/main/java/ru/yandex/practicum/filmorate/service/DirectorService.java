@@ -37,10 +37,6 @@ public class DirectorService {
 	}
 
 	public Director addDirector(Director director) {
-		if (directorDao.contains(director))
-			throw new DirectorAlreadyExistException("Director with name = " + director.getName()
-			+ " is already exist.");
-
 		return directorDao.addDirector(director);
 	}
 
