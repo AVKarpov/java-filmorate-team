@@ -76,5 +76,4 @@ public class InMemoryUserStorage implements UserDao {
         users.remove(userId);
         log.info("Пользователь с id={} удалён.", userId);
     }
-
 }

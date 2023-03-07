@@ -81,7 +81,7 @@ public class UserDbDao implements UserDao {
     @Override
     public Set<User> getUsers() {
         log.debug("Получен запрос на чтение всех фильмов");
-        String getUserSql="select * from users;";
+        String getUserSql="SELECT * FROM users;";
         List<User> users=jdbcTemplate.query(getUserSql, (rs, rowNum) -> userMapper(rs));
         if(users==null) {
             log.debug("Пользователи не найдены.");
@@ -94,7 +94,7 @@ public class UserDbDao implements UserDao {
     @Override
     public User getUser(long userId) {
         log.debug("Получен запрос на фильм с id={};",userId);
-        String getFilmSql="select * from users where user_id=?";
+        String getFilmSql="SELECT * FROM users WHERE user_id=?";
         User user=jdbcTemplate.query(getFilmSql, (rs, rowNum) -> userMapper(rs), userId).stream().findAny().orElse(null);
         if(user==null) {
             log.debug("Пользователь с id={}  не найден.", userId);
@@ -115,9 +115,8 @@ public class UserDbDao implements UserDao {
     @Override
     public void deleteUser(long userId) {
         log.debug("Получен запрос на удаление пользователя с id={}", userId);
-        String deleteUserSql = "delete from user where user_id= ?";
-        Object[] args = new Object[]{userId};
-        int delRow = jdbcTemplate.update(deleteUserSql, args);
+        String deleteUserSql = "DELETE FROM user WHERE user_id= ?";
+        int delRow = jdbcTemplate.update(deleteUserSql, userId);
         if (delRow <= 0) {
             log.debug("Пользователь с id={} для удаления не найден.", userId);
             throw new UserNotFoundException("Пользователь с id=" + userId + " для удаления не найден.");

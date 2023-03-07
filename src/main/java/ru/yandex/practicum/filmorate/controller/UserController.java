@@ -20,35 +20,30 @@ public class UserController {
 
     @Autowired
     public UserController(UserService userService) {
-
         this.userService = userService;
     }
 
     //добавление пользователя
     @PostMapping
     private User addUser(@Valid @RequestBody User user) {
-
         return userService.addUser(user);
     }
 
     //обновление пользователя
     @PutMapping
     private User updateUser(@Valid @RequestBody User user) {
-
         return  userService.updateUser(user);
     }
 
     //возвращает информацию обо всех пользователях
     @GetMapping
     private Set<User> getUsers() {
-
         return userService.getUsers();
     }
 
     //получение данных о пользователе
     @GetMapping("/{id}")
     private User getUser(@PathVariable("id") long userId) {
-
         return userService.getUser(userId);
     }
 
@@ -77,10 +72,11 @@ public class UserController {
         log.info("Получен запрос на поиск общих друзей для пользователей с userId={} и otherId={}.", userId, otherId);
         return userService.getCommonFriends(userId, otherId);
     }
+
     //удаление пользователя по id
     @DeleteMapping("/{id}")
-    protected void deleteUser(@PathVariable("id") long Id) {
-        log.info("Получен запрос на удаление пользователем: {}",Id);
-        userService.deleteUserById(Id);
+    protected void deleteUser(@PathVariable("id") long id) {
+        log.info("Получен запрос на удаление пользователем: {}",id);
+        userService.deleteUserById(id);
     }
 }
