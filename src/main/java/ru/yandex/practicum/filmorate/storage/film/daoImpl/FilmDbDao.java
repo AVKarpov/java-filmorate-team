@@ -4,17 +4,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.film.FilmNotFoundException;
-import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MPA;
 import ru.yandex.practicum.filmorate.storage.film.dao.FilmDao;
 import ru.yandex.practicum.filmorate.storage.film.dao.GenreDao;
+import ru.yandex.practicum.filmorate.storage.film.dao.MpaDao;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -27,10 +29,13 @@ import java.util.stream.Collectors;
 @Slf4j
 public class FilmDbDao implements FilmDao {
     private final JdbcTemplate jdbcTemplate;
+    private final MpaDao mpaDao;
     private final GenreDao genreDao;
 
-    public FilmDbDao(JdbcTemplate jdbcTemplate, @Qualifier("genreDbDao") GenreDao genreDao) {
+    public FilmDbDao(JdbcTemplate jdbcTemplate, @Qualifier("mpaDbDao") MpaDao mpaDao,
+                     @Qualifier("genreDbDao") GenreDao genreDao) {
         this.jdbcTemplate = jdbcTemplate;
+        this.mpaDao = mpaDao;
         this.genreDao = genreDao;
     }
 
@@ -227,7 +232,25 @@ public class FilmDbDao implements FilmDao {
 
         return popFilms;
     }
+    public List<Film> getFilmsRatingSort(String sql, Object[] args) {
+        Map<Long, Integer> filmsId = jdbcTemplate.query(sql, (rs, rowNum) -> filmRatingMapper(rs), args)
+                .stream()
+                .collect(Collectors.toMap(v -> v.getFilmId(), v -> v.getRating()));
+        //получаем список общих фильмов и сортируем фильмы по убыванию рейтинга
+        return getFilms(filmsId.keySet().stream()
+                .collect(Collectors.toList()))
+                .stream()
+                .sorted((f1, f2) -> filmsId.get(f2.getId()) - filmsId.get(f1.getId()))
+                .collect(Collectors.toList());
+    }
 
+    //формирует объект с id фильма и его рейтинга (количество лайков)
+    public FilmRating filmRatingMapper(ResultSet rs) throws SQLException {
+        return FilmRating.builder()
+                .filmId(rs.getLong("film_id"))
+                .rating(rs.getInt("rating"))
+                .build();
+    }
     @Override
     public List<Film> getDirectorsFilms(int directorId, String sortBy) {
         log.debug("Request to get directors films from DB.");
@@ -305,64 +328,13 @@ public class FilmDbDao implements FilmDao {
         MPA mpa = new MPA();
         mpa.setId(rs.getInt("rating_id"));
         mpa.setName(rs.getString("rating_name"));
-
-        Set<Genre> genres = getGenresFromResultSet(rs);
-
-        Set<Director> directors = getDirectorsFromResultSet(rs);
-
-        return Film.builder()
-                .id(id)
-                .name(name)
-                .description(description)
-                .releaseDate(releaseDate)
-                .duration(duration)
-                .rate(rate)
-                .mpa(mpa)
-                .genres(genres)
-                .directors(directors)
-                .build();
-    }
-
-    private Set<Director> getDirectorsFromResultSet(ResultSet rs) throws SQLException {
-        Set<Director> directors = new HashSet<>();
-
-        String allFilmDirectors = rs.getString("DIRECTOR_ID_NAME");
-
-        if(allFilmDirectors == null || allFilmDirectors.isEmpty() || allFilmDirectors.isBlank() || allFilmDirectors.equals("-"))
-            return directors;
-
-        for (String filmDirector : allFilmDirectors.split(",")) {
-            String[] strings = filmDirector.split("-");
-            directors.add(
-                    Director.builder()
-                            .id(Integer.parseInt(strings[0]))
-                            .name(strings[1])
-                            .build()
-            );
-        }
-
-        return directors;
-    }
-
-    private Set<Genre> getGenresFromResultSet(ResultSet rs) throws SQLException {
+        int genreId = rs.getInt("genre_id");
+        log.debug("Получен жанр фильма с film_id={} - genre_id={}", id, genreId);
         Set<Genre> genres = new HashSet<>();
-
-        String allFilmGenres = rs.getString("GENRE_ID_NAME");
-
-        if (allFilmGenres == null || allFilmGenres.isEmpty() || allFilmGenres.isBlank() || allFilmGenres.equals("-"))
-            return genres;
-
-        for (String filmGenre : allFilmGenres.split(",")) {
-            String[] strings = filmGenre.split("-");
-            genres.add(
-                    Genre.builder()
-                    .id(Integer.parseInt(strings[0]))
-                    .name(strings[1])
-                    .build()
-            );
+        if (genreId > 0) {
+            genres.add(new Genre(genreId, rs.getString("genre_name")));
         }
-
-        return genres;
+        return new Film(id, name, description, releaseDate, duration, rate, mpa, genres);
     }
 
     private void addDirectors(Set<Director> directors, long filmId) {

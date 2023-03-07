@@ -9,6 +9,7 @@ import ru.yandex.practicum.filmorate.storage.user.dao.UserDao;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -16,11 +17,12 @@ public class UserService {
 
    private final UserDao userStorage;
    private final FriendsDao friendsDao;
+   private final FilmLikeDbDao filmLikeDbDao;
 
-    public UserService(UserDao userStorage,
-                       FriendsDao friendsDao) {
+    public UserService(UserDao userStorage, FriendsDao friendsDao, FilmLikeDbDao filmLikeDbDao) {
         this.userStorage = userStorage;
         this.friendsDao = friendsDao;
+        this.filmLikeDbDao = filmLikeDbDao;
     }
 
     //добавление пользователя
@@ -79,7 +81,6 @@ public class UserService {
     public List<User> getFriends(long userId) {
         log.debug("Получен запрос на получение для пользователя с id={} списка друзей", userId);
         isValidIdUser(userId);
-        userStorage.getUser(userId);
         return friendsDao.getFriends(userId);
     }
 
@@ -93,6 +94,15 @@ public class UserService {
         return friendsDao.getCommonFriends(userId,otherId);
     }
 
+    //выводим рекомендуемых фильмов для пользователя
+    public List<Film> getRecommendations(Optional<String> userId) {
+        log.info("Service: получен запрос на вывод рекомендаций фильмов.");
+        long userIdTrue = getDigitOfString(userId);
+        log.info("Service: получен запрос на вывод рекомендаций фильмов для userId={}.", userIdTrue);
+        isValidIdUser(userIdTrue);
+        return filmLikeDbDao.getRecomendationFilm(userIdTrue);
+    }
+
     private boolean isValidIdUser(long userId) {
         if (userId <= 0) {
             throw new UserNotFoundException("Некорректный id=" + userId + " пользователя.");
@@ -102,11 +112,27 @@ public class UserService {
     }
 
     //проверяет не равныли id пользователя и друга
-    private boolean isNotEqualIdUser(long userId, long friendId) {
+    public boolean isNotEqualIdUser(long userId, long friendId) {
         if (userId == friendId) {
             throw new UserNotFoundException("Пользователь с id=" + userId + " не может добавить сам себя в друзья.");
         }
         return true;
+    }
+
+    //возвращает из строки числовое значение
+    private Long getDigitOfString(Optional<String> str) {
+        return Stream.of(str.get())
+                .limit(1)
+                .map(this::stringParseLong)
+                .findFirst()
+                .get();
+    }
+    private Long stringParseLong(String str) {
+        try {
+            return Long.parseLong(str);
+        } catch (RuntimeException e) {
+            throw new ValidationException("Передан некорректный userId.");
+        }
     }
      public void deleteUserById (long id) {
          isValidIdUser(id);
