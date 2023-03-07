@@ -14,8 +14,10 @@ import ru.yandex.practicum.filmorate.storage.user.dao.UserDao;
 
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 //отвечает за операции с фильмами, — добавление и удаление лайка, вывод 10 наиболее популярных фильмов
 // по количеству лайков. Пусть пока каждый пользователь может поставить лайк фильму только один раз.
@@ -159,6 +161,20 @@ public class FilmService {
         return filmStorage.getDirectorsFilms(directorId, sortBy);
     }
 
+    //вернуть общие фильмы для пользователей
+    public List<Film> getCommonFilms(Optional<String> userId, Optional<String> friendId) {
+        log.info("FilmService: Запрошены общие фильмы пользователей.");
+        long userIdTrue = getDigitOfString(userId);
+        long friendIdTrue = getDigitOfString(friendId);
+        //проверка значений userId и friendId как на значение >0, так и на соответствие Long
+        log.info("FilmService: Запрос на получение общих фильмов пользователей с userId={} и friendId={}..."
+                , userIdTrue, friendIdTrue);
+        isValidUserId(userIdTrue);
+        isValidUserId(friendIdTrue);
+        isNotEqualIdUser(userIdTrue, friendIdTrue);
+        return filmStorage.getCommonFilms(userIdTrue, friendIdTrue);
+    }
+
     //проверка корректности значений filmId
     private boolean isValidFilmId(long filmId) {
         if (filmId <= 0) {
@@ -208,4 +224,32 @@ public class FilmService {
         }
         return true;
     }
+
+    //возвращает из строки числовое значение
+
+    private Long getDigitOfString(Optional<String> str) {
+        return Stream.of(str.get())
+                .limit(1)
+                .map(this::stringParseLong)
+                .findFirst()
+                .get();
+    }
+
+
+    //проверяет не равныли id пользователя и друга
+    public boolean isNotEqualIdUser(long userId, long friendId) {
+        if (userId == friendId) {
+            throw new UserNotFoundException("Пользователь с id=" + userId + " не может добавить сам себя в друзья.");
+        }
+        return true;
+    }
+
+    private Long stringParseLong(String str) {
+        try {
+            return Long.parseLong(str);
+        } catch (RuntimeException e) {
+            throw new ValidationException("Передан некорректный userId.");
+        }
+    }
+
 }

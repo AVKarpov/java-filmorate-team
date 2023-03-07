@@ -152,4 +152,8 @@ public class InMemoryFilmStorage implements FilmDao {
         return null;
     }
 
+    @Override
+    public List<Film> getCommonFilms(long userId, long friendId) {
+        return null;
+    }
 }

@@ -9,7 +9,10 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.film.FilmNotFoundException;
-import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.model.Director;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.MPA;
 import ru.yandex.practicum.filmorate.storage.film.dao.FilmDao;
 import ru.yandex.practicum.filmorate.storage.film.dao.GenreDao;
 import ru.yandex.practicum.filmorate.storage.film.dao.MpaDao;
@@ -250,7 +253,6 @@ public class FilmDbDao implements FilmDao {
                 "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
                 "GROUP BY f.FILM_ID;";
         List<Film> popFilms = jdbcTemplate.query(popFilmSql, (rs, rowNum) -> filmMapper(rs), maxCount);
-
         log.debug("Популярные фильмы:");
         for (Film film : popFilms) {
             log.debug("Фильм с film_id={}: {}", film.getId(), film);
@@ -344,6 +346,61 @@ public class FilmDbDao implements FilmDao {
         return films;
     }
 
+    @Override
+    public List<Film> getCommonFilms(long userId, long friendId) {
+        log.info("FilmDb: Запрос на получение общих фильмов пользователей с userId={} и friendId={}...", userId, friendId);
+        String getSql = "SELECT u.film_id,count(fl.FILM_ID) rating\n" +
+                "FROM (SELECT * FROM FILMS_LIKE fl WHERE USER_ID =?) u\n" +
+                "INNER JOIN \n" +
+                "(SELECT * FROM FILMS_LIKE fl WHERE USER_ID =?) f\n" +
+                "ON u.film_id=f.film_id\n" +
+                "LEFT JOIN FILMS_LIKE fl ON u.film_id=fl.FILM_ID \n" +
+                "GROUP BY fl.FILM_ID";
+        Object[] args = new Object[]{userId, friendId};
+        return getFilmsRatingSort(getSql,args);
+    }
+
+    @Override
+    public List<Film> getFilms(List<Long> filmsId) {
+        log.debug("FilmDbDao: Получен запрос на чтение нескольких фильмов с определённым filmId");
+        log.debug("FilmDbDao: получены filmsId рекомендуемых фильмов: {}", filmsId.toString());
+        String inSql = String.join(",", Collections.nCopies(filmsId.size(), "?"));
+        String getFilmSql = String.format("select f.FILM_ID ,f.NAME ,f.DESCRIPTION ,f.RELEASE_DATE ,f.RELEASE_DATE ,f.DURATION ,f.RATE ," +
+                "rm.RATING_ID ,rm.RATING_NAME ,g.GENRE_ID ,g.GENRE_NAME from films f LEFT JOIN RATINGS_MPA rm " +
+                "ON f.RATING_ID =rm.RATING_ID LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID LEFT JOIN GENRE g " +
+                "ON fg.GENRE_ID =g.GENRE_ID WHERE f.FILM_ID IN (%s) ORDER BY f.FILM_ID;", inSql);
+        //запрашиваем все фильмы с жанрами и рейтингом MPA
+        List<Film> films = jdbcTemplate.query(getFilmSql, (rs, rowNum) -> filmMapper(rs), filmsId.toArray());
+        if (films == null) {
+            log.debug("Фильмы не найдены.");
+            throw new FilmNotFoundException("Фильмы не найдены.");
+        }
+        log.debug("Получен списко из {} фильмов.", films.size());
+        LinkedHashMap<Long, Film> filmsMap = getUniqueFilm(films);
+        log.debug("После удаления дублей осталось {} фильмов.", filmsMap.size());
+        return filmsMap.values().stream().collect(Collectors.toList());
+    }
+
+    public List<Film> getFilmsRatingSort(String sql, Object[] args) {
+        Map<Long, Integer> filmsId = jdbcTemplate.query(sql, (rs, rowNum) -> filmRatingMapper(rs), args)
+                .stream()
+                .collect(Collectors.toMap(v -> v.getFilmId(), v -> v.getRating()));
+        //получаем список общих фильмов и сортируем фильмы по убыванию рейтинга
+        return getFilms(filmsId.keySet().stream()
+                .collect(Collectors.toList()))
+                .stream()
+                .sorted((f1, f2) -> filmsId.get(f2.getId()) - filmsId.get(f1.getId()))
+                .collect(Collectors.toList());
+    }
+
+    //формирует объект с id фильма и его рейтинга (количество лайков)
+    public FilmRating filmRatingMapper(ResultSet rs) throws SQLException {
+        return FilmRating.builder()
+                .filmId(rs.getLong("film_id"))
+                .rating(rs.getInt("rating"))
+                .build();
+    }
+
     private Film filmMapper(ResultSet rs) throws SQLException {
         //перебираем записи результирующего набора
         MPA mpa = new MPA();
@@ -362,6 +419,7 @@ public class FilmDbDao implements FilmDao {
                 .directors(getDirectorsFromResultSet(rs))
                 .build();
     }
+
 
     private Set<Director> getDirectorsFromResultSet(ResultSet rs) throws SQLException {
         Set<Director> directors = new HashSet<>();
