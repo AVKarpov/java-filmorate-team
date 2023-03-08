@@ -27,7 +27,7 @@ public class UserService {
 
     public UserService(UserDao userStorage,
                        FriendsDao friendsDao,
-                       FilmLikeDao filmLikeDao
+                       FilmLikeDao filmLikeDao,
                        FeedDbDao feedDbDao) {
         this.userStorage = userStorage;
         this.friendsDao = friendsDao;
