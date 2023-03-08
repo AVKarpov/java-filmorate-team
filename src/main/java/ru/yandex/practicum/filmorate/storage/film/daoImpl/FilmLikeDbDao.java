@@ -21,6 +21,7 @@ public class FilmLikeDbDao implements FilmLikeDao {
     private final JdbcTemplate jdbcTemplate;
     private final MpaDao mpaDao;
     private final GenreDao genreDao;
+    private final FilmDbDao filmDbDao;
 
     public FilmLikeDbDao(JdbcTemplate jdbcTemplate
                         ,@Qualifier("mpaDbDao") MpaDao mpaDao

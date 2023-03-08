@@ -48,23 +48,22 @@ public class DirectorDaoImpl implements DirectorDao {
 	@Override
 	public List<Director> getAllDirectors() {
 		log.debug("Request to get all directors from DB.");
-
-		String sql = "SELECT * " +
-				"FROM directors;";
-
-		return jdbcTemplate.query(sql, (rs, rowNum) -> makeDirector(rs));
+		String sql = "SELECT * FROM directors;";
+		List<Director> directors=jdbcTemplate.query(sql, (rs, rowNum) -> makeDirector(rs));
+		log.debug("Получен список из {} режиссеров.", directors.size());
+		log.debug("Режиссеры: {}.", directors.toString());
+//		return jdbcTemplate.query(sql, (rs, rowNum) -> makeDirector(rs));
+		return directors;
 	}
 
 	@Override
 	public Director addDirector(Director director) {
 		log.debug("Request to add director to DB {}.", director);
-
 		if (contains(director))
 			throw new DirectorAlreadyExistException("Director with name = " + director.getName()
 					+ " is already exist.");
 
-		String sql = "INSERT INTO directors (name) " +
-				"VALUES (?);";
+		String sql = "INSERT INTO directors (name) VALUES (?);";
 
 		KeyHolder keyHolder = new GeneratedKeyHolder();
 		jdbcTemplate.update(
@@ -85,9 +84,7 @@ public class DirectorDaoImpl implements DirectorDao {
 	public Director updateDirector(Director director) {
 		log.debug("Request to update director into DB.");
 
-		String sql = "UPDATE directors " +
-				"SET name = ? " +
-				"WHERE director_id = ?;";
+		String sql = "UPDATE directors SET name = ? WHERE director_id = ?;";
 		jdbcTemplate.update(sql, director.getName(), director.getId());
 
 		return director;
