@@ -53,6 +53,44 @@
 - <font color="grey">friend_id</font> - идентификатор пользователя, которого в друзья первым добавил другой пользователь (<font color="grey">user_id</font>) в друзья. Внешний ключ к таблице <font color="green">users</font>;
 - <font color="grey">friend_status</font> - статус дружбы пользователей <font color="grey">user_id</font> и <font color="grey">friend_id</font>. Если <font color="yellow">false</font> - пользователь <font color="grey">friend_id</font> является другом пользователя <font color="grey">user_id</font>, если <font color="yellow">true</font> - пользователи дружат между собой.
 
+#### Таблица <font color="green">films_director</font> - хранит сведения о режиссерах фильмов:
+- <font color="grey">films_director_id</font> - уникальный идентификатор таблицы;
+- <font color="grey">film_id</font> - идентификатор фильма. Внешний ключ к таблице <font color="green">films</font>;
+- <font color="grey">director_id</font> - идентификатор режиссера. Внешний ключ к таблице <font color="green">directors</font>;
+
+#### Таблица <font color="green">directors</font> - хранит сведения о режиссерах фильмов:
+- <font color="grey">director_id</font> - уникальный идентификатор режиссера;
+- <font color="grey">name</font> - имя режиссера;
+
+#### Таблица <font color="green">films_review</font> - хранит сведения об отзывах к фильмам:
+- <font color="grey">review_id</font> - уникальный идентификатор отзыва;
+- <font color="grey">film_id</font> - идентификатор фильма. Внешний ключ к таблице <font color="green">films</font>;
+- <font color="grey">user_id</font> - идентификатор пользователя, оставившего отзыв. Внешний ключ к таблице <font color="green">users</font>;
+- <font color="grey">content</font> - содержание отзыва;
+- <font color="grey">useful</font> - полезность отзыва;
+- <font color="grey">in_positive</font> - идентификатор полезности отзыва;
+
+#### Таблица <font color="green">useful_reviews</font> - хранит сведения о лайках к отзывам:
+- <font color="grey">review_id</font> - уникальный идентификатор отзыва;
+- <font color="grey">user_id</font> - идентификатор пользователя, поставившего лайк отзыву. Внешний ключ к таблице <font color="green">users</font>;
+- <font color="grey">is_like</font> - лайк, поставленный пользователем отзыву;
+
+#### Таблица <font color="green">feeds</font> - хранит сведения о ланте событий:
+- <font color="grey">event_id</font> - идентификатор события;
+- <font color="grey">user_id</font> - идентификатор пользователя, действие которого журналировано. Внешний ключ к таблице <font color="green">users</font>;
+- <font color="grey">timestamp</font> - метка времени регистрации события;
+- <font color="grey">event_type</font> - тип события. Внешний ключ к таблице <font color="green">event_types</font>;
+- <font color="grey">operation</font> - тип действия. Внешний ключ к таблице <font color="green">operations</font>;
+- <font color="grey">entity_id</font> - идентификатор сущности с которой произошло событие;
+
+#### Таблица <font color="green">event_types</font> - хранит сведения о типе событий:
+- <font color="grey">id</font> - идентификатор типа события;
+- <font color="grey">event_type</font> - наименование типа события;
+
+#### Таблица <font color="green">operations</font> - хранит сведения о типе действий:
+- <font color="grey">id</font> - идентификатор типа действия;
+- <font color="grey">operation</font> - наименование типа действия.
+
 <span>______________________________________________________________________________________________________________________________________</span>
 ## Типовые запросы, используемые для работы с базой данных.
 
