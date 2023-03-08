@@ -9,6 +9,8 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.review.ReviewNotFoundException;
 import ru.yandex.practicum.filmorate.model.Review;
+import ru.yandex.practicum.filmorate.model.feed.EventType;
+import ru.yandex.practicum.filmorate.model.feed.OperationType;
 import ru.yandex.practicum.filmorate.storage.film.dao.ReviewDao;
 import ru.yandex.practicum.filmorate.storage.film.dao.ReviewLikeDao;
 
@@ -26,16 +28,18 @@ import java.util.stream.Collectors;
 public class ReviewDbDao implements ReviewDao {
     private final JdbcTemplate jdbcTemplate;
     private final ReviewLikeDao reviewLikeDao;
+    private final FeedDbDao feedDbDao;
 
-    public ReviewDbDao(JdbcTemplate jdbcTemplate, @Qualifier("reviewLikeDbStorage") ReviewLikeDao reviewLikeDao) {
+    public ReviewDbDao(JdbcTemplate jdbcTemplate, @Qualifier("reviewLikeDbStorage") ReviewLikeDao reviewLikeDao,
+            @Qualifier("feedDbDao") FeedDbDao feedDbDao) {
         this.jdbcTemplate = jdbcTemplate;
         this.reviewLikeDao = reviewLikeDao;
+        this.feedDbDao = feedDbDao;
     }
 
     @Override
     public Review addReview(Review review) {
         log.info("Запрос на добавление отзыва: {} получен хранилищем ДБ", review);
-
         String sql = "INSERT INTO films_review(film_id, user_id, content, is_positive) VALUES(?,?,?,?);";
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(
@@ -52,13 +56,13 @@ public class ReviewDbDao implements ReviewDao {
         long reviewId = keyHolder.getKey().intValue();
         review.setReviewId(reviewId);
         log.debug("Добавлено новый отзыв с id={}", reviewId);
+        feedDbDao.addFeed(review.getUserId(), EventType.REVIEW, OperationType.ADD, reviewId);
         return review;
     }
 
     @Override
     public Review updateReview(Review review) {
         log.info("Запрос на обновление отзыва: {} получен хранилищем ДБ", review);
-
         log.debug("Формируем sql запрос...");
         String updateSql = "UPDATE films_review SET content = ?, is_positive = ? WHERE review_id = ?";
         int updateRow = jdbcTemplate.update(updateSql, review.getContent(), review.getIsPositive(), review.getReviewId());
@@ -67,20 +71,23 @@ public class ReviewDbDao implements ReviewDao {
             throw new ReviewNotFoundException("Отзыв с id=" + review.getReviewId() + " для обновления не найден.");
         }
         log.debug("Отзыв с id={} обновлён.", review.getReviewId());
+        Review reviewUpdate=getReviewById(review.getReviewId());
+        feedDbDao.addFeed(reviewUpdate.getUserId(), EventType.REVIEW,OperationType.UPDATE, reviewUpdate.getFilmId());
         return getReviewById(review.getReviewId());
     }
 
     @Override
     public void deleteReviewById(Integer id) {
         log.info("Запрос на удаление отзыва c id={} получен хранилищем ДБ", id);
-
         log.debug("Формируем sql запрос...");
-        String deleteReviewSql = "DELETE FROM films_review WHERE review_id = ?";
-        int delRow = jdbcTemplate.update(deleteReviewSql, id);
-        if (delRow <= 0) {
+        Optional<Review> review=Optional.ofNullable(getReviewById(id));
+        if (!review.isPresent()) {
             log.debug("Отзыв с id={} для удаления не найден.", id);
             throw new ReviewNotFoundException("Отзыв с id=" + id + " для удаления не найден.");
         }
+        String deleteReviewSql = "DELETE FROM films_review WHERE review_id = ?";
+        int delRow = jdbcTemplate.update(deleteReviewSql, id);
+        feedDbDao.addFeed(review.get().getUserId(), EventType.REVIEW, OperationType.REMOVE, review.get().getFilmId());
         log.debug("Отзыв с id={} удалён.", id);
     }
 

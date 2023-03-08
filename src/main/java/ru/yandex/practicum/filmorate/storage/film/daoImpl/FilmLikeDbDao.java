@@ -15,7 +15,7 @@ import ru.yandex.practicum.filmorate.storage.film.dao.MpaDao;
 
 import java.util.List;
 
-@Component
+@Component("filmLikeDbDao")
 @Primary
 @Slf4j
 public class FilmLikeDbDao implements FilmLikeDao {

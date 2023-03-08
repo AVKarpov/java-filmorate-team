@@ -3,17 +3,14 @@ package ru.yandex.practicum.filmorate.storage.film.daoImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.director.DirectorAlreadyExistException;
 import ru.yandex.practicum.filmorate.model.Director;
-import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.dao.DirectorDao;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -21,13 +18,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-@Component
-public class DirectorDaoImpl implements DirectorDao {
+@Component("directorDbDao")
+public class DirectorDbDao implements DirectorDao {
 
 	private final JdbcTemplate jdbcTemplate;
 
 	@Autowired
-	public DirectorDaoImpl (JdbcTemplate jdbcTemplate) {
+	public DirectorDbDao(JdbcTemplate jdbcTemplate) {
 		this.jdbcTemplate = jdbcTemplate;
 	}
 

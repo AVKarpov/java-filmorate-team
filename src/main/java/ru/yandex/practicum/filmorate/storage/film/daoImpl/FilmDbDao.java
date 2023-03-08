@@ -4,23 +4,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.film.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.*;
-import ru.yandex.practicum.filmorate.storage.film.dao.DirectorDao;
 import ru.yandex.practicum.filmorate.storage.film.dao.FilmDao;
 import ru.yandex.practicum.filmorate.storage.film.dao.GenreDao;
 import ru.yandex.practicum.filmorate.storage.film.dao.MpaDao;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,6 +23,240 @@ import java.util.stream.Collectors;
 @Primary
 @Slf4j
 public class FilmDbDao implements FilmDao {
+    private final String GET_POPULAR_FILMS = "select f.FILM_ID\n" +
+            "  ,f.NAME\n" +
+            "  ,f.DESCRIPTION \n" +
+            "  ,f.RELEASE_DATE \n" +
+            "  ,f.DURATION \n" +
+            "  ,f.RATE\n" +
+            "  ,rm.RATING_ID\n" +
+            "  ,rm.RATING_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
+            "from (\n" +
+            "  SELECT fi.* \n" +
+            "        FROM FILMS fi \n" +
+            "        LEFT JOIN \n" +
+            "        (SELECT FILM_ID,COUNT(*) cLike \n" +
+            "            FROM FILMS_LIKE \n" +
+            "            GROUP BY FILM_ID\n" +
+            "        ) fil \n" +
+            "        ON fil.FILM_ID = fi.FILM_ID \n" +
+            "        ORDER BY clike DESC limit(?)\n" +
+            ") f\n" +
+            "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
+            "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
+            "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
+            "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
+            "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
+            "GROUP BY f.FILM_ID;";
+
+    private final String GET_FILM_ID = "select f.FILM_ID\n" +
+            "  ,f.NAME\n" +
+            "  ,f.DESCRIPTION \n" +
+            "  ,f.RELEASE_DATE \n" +
+            "  ,f.DURATION \n" +
+            "  ,f.RATE\n" +
+            "  ,rm.RATING_ID\n" +
+            "  ,rm.RATING_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
+            "from FILMS f \n" +
+            "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
+            "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
+            "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
+            "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
+            "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
+            "WHERE f.FILM_ID = ? \n" +
+            "GROUP BY f.FILM_ID;";
+
+    private final String GET_FILMS = "select f.FILM_ID\n" +
+            "  ,f.NAME\n" +
+            "  ,f.DESCRIPTION \n" +
+            "  ,f.RELEASE_DATE \n" +
+            "  ,f.DURATION \n" +
+            "  ,f.RATE\n" +
+            "  ,rm.RATING_ID\n" +
+            "  ,rm.RATING_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
+            "from films f LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
+            "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
+            "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
+            "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
+            "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
+            "GROUP BY f.FILM_ID;";
+
+    private final String GET_FILMS_ID = "select f.FILM_ID\n" +
+            "  ,f.NAME\n" +
+            "  ,f.DESCRIPTION \n" +
+            "  ,f.RELEASE_DATE \n" +
+            "  ,f.DURATION \n" +
+            "  ,f.RATE\n" +
+            "  ,rm.RATING_ID\n" +
+            "  ,rm.RATING_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
+            "from films f LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
+            "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
+            "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
+            "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
+            "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
+            "WHERE f.FILM_ID IN (%s)" +
+            "GROUP BY f.FILM_ID;";
+
+    private final String GET_DIRECTORS_FILMS_LIKE = "select f.FILM_ID\n" +
+            "  ,f.NAME\n" +
+            "  ,f.DESCRIPTION \n" +
+            "  ,f.RELEASE_DATE \n" +
+            "  ,f.DURATION \n" +
+            "  ,f.RATE\n" +
+            "  ,rm.RATING_ID\n" +
+            "  ,rm.RATING_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
+            "from (\n" +
+            "  SELECT fi.* \n" +
+            "        FROM FILMS fi \n" +
+            "        LEFT JOIN \n" +
+            "        (SELECT FILM_ID,COUNT(*) cLike \n" +
+            "            FROM FILMS_LIKE \n" +
+            "            GROUP BY FILM_ID\n" +
+            "        ) fil \n" +
+            "        ON fil.FILM_ID = fi.FILM_ID \n" +
+            "        ORDER BY clike  \n" +
+            ") f\n" +
+            "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
+            "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
+            "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
+            "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
+            "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
+            "WHERE f.FILM_ID IN ( " +
+            "SELECT f2.film_id " +
+            "FROM films_director f2 " +
+            "WHERE f2.director_id = ?)\n" +
+            "GROUP BY f.FILM_ID;";
+
+    private final String GET_DIRECTORS_FILMS_YEAR = "select f.FILM_ID\n" +
+            "  ,f.NAME\n" +
+            "  ,f.DESCRIPTION \n" +
+            "  ,f.RELEASE_DATE \n" +
+            "  ,f.DURATION \n" +
+            "  ,f.RATE\n" +
+            "  ,rm.RATING_ID\n" +
+            "  ,rm.RATING_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
+            "from films f LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
+            "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
+            "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
+            "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
+            "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
+            "WHERE f.FILM_ID IN ( " +
+            "SELECT f2.film_id " +
+            "FROM films_director f2 " +
+            "WHERE f2.director_id = ? )\n" +
+            "GROUP BY f.FILM_ID\n" +
+            "ORDER BY f.RELEASE_DATE;";
+
+    private final String GET_COMMON_FILMS= "SELECT u.film_id,count(fl.FILM_ID) rating\n" +
+            "FROM (SELECT * FROM FILMS_LIKE fl WHERE USER_ID =?) u\n" +
+            "INNER JOIN \n" +
+            "(SELECT * FROM FILMS_LIKE fl WHERE USER_ID =?) f\n" +
+            "ON u.film_id=f.film_id\n" +
+            "LEFT JOIN FILMS_LIKE fl ON u.film_id=fl.FILM_ID \n" +
+            "GROUP BY fl.FILM_ID";
+
+    private final String GET_SEARCH_FILMS_BY_NAME="select f.FILM_ID\n" +
+            "  ,f.NAME\n" +
+            "  ,f.DESCRIPTION \n" +
+            "  ,f.RELEASE_DATE \n" +
+            "  ,f.DURATION \n" +
+            "  ,f.RATE\n" +
+            "  ,rm.RATING_ID\n" +
+            "  ,rm.RATING_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
+            "from (\n" +
+            "  SELECT fi.* \n" +
+            "        FROM FILMS fi \n" +
+            "        LEFT JOIN \n" +
+            "        (SELECT FILM_ID,COUNT(*) cLike \n" +
+            "            FROM FILMS_LIKE \n" +
+            "            GROUP BY FILM_ID\n" +
+            "        ) fil \n" +
+            "        ON fil.FILM_ID = fi.FILM_ID \n" +
+            "        ORDER BY clike DESC\n" +
+            ") f\n" +
+            "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
+            "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
+            "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
+            "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
+            "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
+            "WHERE LOWER(f.NAME) LIKE ?\n" +
+            "GROUP BY f.FILM_ID\n" +
+            "ORDER BY f.FILM_ID DESC;";
+
+    private final String GET_SEARCH_FILMS_BY_DIRECTOR="select f.FILM_ID\n" +
+            "  ,f.NAME\n" +
+            "  ,f.DESCRIPTION \n" +
+            "  ,f.RELEASE_DATE \n" +
+            "  ,f.DURATION \n" +
+            "  ,f.RATE\n" +
+            "  ,rm.RATING_ID\n" +
+            "  ,rm.RATING_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
+            "from (\n" +
+            "  SELECT fi.* \n" +
+            "        FROM FILMS fi \n" +
+            "        LEFT JOIN \n" +
+            "        (SELECT FILM_ID,COUNT(*) cLike \n" +
+            "            FROM FILMS_LIKE \n" +
+            "            GROUP BY FILM_ID\n" +
+            "        ) fil \n" +
+            "        ON fil.FILM_ID = fi.FILM_ID \n" +
+            "        ORDER BY clike DESC\n" +
+            ") f\n" +
+            "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
+            "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
+            "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
+            "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
+            "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
+            "WHERE LOWER(d.NAME) LIKE ?\n" +
+            "GROUP BY f.FILM_ID\n" +
+            "ORDER BY f.FILM_ID DESC;";
+
+    private final String GET_SEARCH_FILMS_BY_ALL="select f.FILM_ID\n" +
+            "  ,f.NAME\n" +
+            "  ,f.DESCRIPTION \n" +
+            "  ,f.RELEASE_DATE \n" +
+            "  ,f.DURATION \n" +
+            "  ,f.RATE\n" +
+            "  ,rm.RATING_ID\n" +
+            "  ,rm.RATING_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
+            "from (\n" +
+            "  SELECT fi.* \n" +
+            "        FROM FILMS fi \n" +
+            "        LEFT JOIN \n" +
+            "        (SELECT FILM_ID,COUNT(*) cLike \n" +
+            "            FROM FILMS_LIKE \n" +
+            "            GROUP BY FILM_ID\n" +
+            "        ) fil \n" +
+            "        ON fil.FILM_ID = fi.FILM_ID \n" +
+            "        ORDER BY clike DESC\n" +
+            ") f\n" +
+            "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
+            "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
+            "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
+            "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
+            "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
+            "WHERE LOWER(f.NAME) LIKE ?\n" +
+            "OR LOWER(d.NAME) LIKE ?\n" +
+            "GROUP BY f.FILM_ID\n" +
+            "ORDER BY f.FILM_ID DESC;";
     private final JdbcTemplate jdbcTemplate;
     private final MpaDao mpaDao;
     private final GenreDao genreDao;
@@ -141,53 +370,20 @@ public class FilmDbDao implements FilmDao {
     //из таблицы ratings_mpa: mpa.id,mpa.name
     public Film getFilm(long filmId) {
         log.debug("Получен запрос на фильм с id={};", filmId);
-        String getFilmSql = "select f.FILM_ID\n" +
-                "  ,f.NAME\n" +
-                "  ,f.DESCRIPTION \n" +
-                "  ,f.RELEASE_DATE \n" +
-                "  ,f.DURATION \n" +
-                "  ,f.RATE\n" +
-                "  ,rm.RATING_ID\n" +
-                "  ,rm.RATING_NAME\n" +
-                "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
-                "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
-                "from FILMS f \n" +
-                "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
-                "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
-                "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
-                "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
-                "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
-                "WHERE f.FILM_ID = ? \n" +
-                "GROUP BY f.FILM_ID;";
+        String getFilmSql = GET_FILM_ID;
         List<Film> films = jdbcTemplate.query(getFilmSql, (rs, rowNum) -> filmMapper(rs), filmId);
 
         if (films.isEmpty()) {
             log.debug("Фильм не найден.");
             throw new FilmNotFoundException("Фильм не найден.");
         }
-
         return films.iterator().next();
     }
 
     @Override
     public List<Film> getFilms() {
         log.debug("Получен запрос на чтение всех фильмов");
-        String getFilmSql = "select f.FILM_ID\n" +
-                "  ,f.NAME\n" +
-                "  ,f.DESCRIPTION \n" +
-                "  ,f.RELEASE_DATE \n" +
-                "  ,f.DURATION \n" +
-                "  ,f.RATE\n" +
-                "  ,rm.RATING_ID\n" +
-                "  ,rm.RATING_NAME\n" +
-                "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
-                "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
-                "from films f LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
-                "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
-                "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
-                "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
-                "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
-                "GROUP BY f.FILM_ID;";
+        String getFilmSql = GET_FILMS;
         //запрашиваем все фильмы с жанрами и рейтингом MPA
         List<Film> films = jdbcTemplate.query(getFilmSql, (rs, rowNum) -> filmMapper(rs));
         log.debug("Получен список из {} фильмов.", films.size());
@@ -199,23 +395,8 @@ public class FilmDbDao implements FilmDao {
         log.debug("FilmDbDao: Получен запрос на чтение нескольких фильмов с определённым filmId");
         log.debug("FilmDbDao: получены filmsId рекомендуемых фильмов: {}", filmsId.toString());
         String inSql = String.join(",", Collections.nCopies(filmsId.size(), "?"));
-        String getFilmSql = String.format("select f.FILM_ID\n" +
-                        "  ,f.NAME\n" +
-                        "  ,f.DESCRIPTION \n" +
-                        "  ,f.RELEASE_DATE \n" +
-                        "  ,f.DURATION \n" +
-                        "  ,f.RATE\n" +
-                        "  ,rm.RATING_ID\n" +
-                        "  ,rm.RATING_NAME\n" +
-                        "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
-                        "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
-                        "from films f LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
-                        "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
-                        "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
-                        "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
-                        "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
-                        "WHERE f.FILM_ID IN (%s)" +
-                        "GROUP BY f.FILM_ID;", inSql);
+        String getFilmSql = String.format(GET_FILMS_ID, inSql);
+        ;
         //запрашиваем все фильмы с жанрами и рейтингом MPA
         List<Film> films = jdbcTemplate.query(getFilmSql, (rs, rowNum) -> filmMapper(rs), filmsId.toArray());
         log.debug("Получен список из {} фильмов.", films.size());
@@ -224,33 +405,7 @@ public class FilmDbDao implements FilmDao {
 
     @Override
     public List<Film> getPopularFilms(long maxCount) {
-        String popFilmSql = "select f.FILM_ID\n" +
-                "  ,f.NAME\n" +
-                "  ,f.DESCRIPTION \n" +
-                "  ,f.RELEASE_DATE \n" +
-                "  ,f.DURATION \n" +
-                "  ,f.RATE\n" +
-                "  ,rm.RATING_ID\n" +
-                "  ,rm.RATING_NAME\n" +
-                "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
-                "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
-                "from (\n" +
-                "  SELECT fi.* \n" +
-                "        FROM FILMS fi \n" +
-                "        LEFT JOIN \n" +
-                "        (SELECT FILM_ID,COUNT(*) cLike \n" +
-                "            FROM FILMS_LIKE \n" +
-                "            GROUP BY FILM_ID\n" +
-                "        ) fil \n" +
-                "        ON fil.FILM_ID = fi.FILM_ID \n" +
-                "        ORDER BY clike DESC limit(?)\n" +
-                ") f\n" +
-                "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
-                "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
-                "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
-                "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
-                "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
-                "GROUP BY f.FILM_ID;";
+        String popFilmSql = GET_POPULAR_FILMS;
         List<Film> popFilms = jdbcTemplate.query(popFilmSql, (rs, rowNum) -> filmMapper(rs), maxCount);
         log.debug("Популярные фильмы:");
         for (Film film : popFilms) {
@@ -279,67 +434,20 @@ public class FilmDbDao implements FilmDao {
                 .rating(rs.getInt("rating"))
                 .build();
     }
+
     @Override
     public List<Film> getDirectorsFilms(int directorId, String sortBy) {
-        log.debug("Request to get directors films from DB.");
+        log.debug("Request to get directors films from DB, sortBy={}", sortBy);
 
         String sql = "";
 
-        if (sortBy.equals("likes"))
-            sql = "select f.FILM_ID\n" +
-                    "  ,f.NAME\n" +
-                    "  ,f.DESCRIPTION \n" +
-                    "  ,f.RELEASE_DATE \n" +
-                    "  ,f.DURATION \n" +
-                    "  ,f.RATE\n" +
-                    "  ,rm.RATING_ID\n" +
-                    "  ,rm.RATING_NAME\n" +
-                    "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
-                    "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
-                    "from (\n" +
-                    "  SELECT fi.* \n" +
-                    "        FROM FILMS fi \n" +
-                    "        LEFT JOIN \n" +
-                    "        (SELECT FILM_ID,COUNT(*) cLike \n" +
-                    "            FROM FILMS_LIKE \n" +
-                    "            GROUP BY FILM_ID\n" +
-                    "        ) fil \n" +
-                    "        ON fil.FILM_ID = fi.FILM_ID \n" +
-                    "        ORDER BY clike  \n" +
-                    ") f\n" +
-                    "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
-                    "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
-                    "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
-                    "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
-                    "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
-                    "WHERE f.FILM_ID IN ( " +
-                    "SELECT f2.film_id " +
-                    "FROM films_director f2 " +
-                    "WHERE f2.director_id = ?)\n" +
-                    "GROUP BY f.FILM_ID;";
-        else
-            sql = "select f.FILM_ID\n" +
-                    "  ,f.NAME\n" +
-                    "  ,f.DESCRIPTION \n" +
-                    "  ,f.RELEASE_DATE \n" +
-                    "  ,f.DURATION \n" +
-                    "  ,f.RATE\n" +
-                    "  ,rm.RATING_ID\n" +
-                    "  ,rm.RATING_NAME\n" +
-                    "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
-                    "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
-                    "from films f LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
-                    "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
-                    "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
-                    "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
-                    "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
-                    "WHERE f.FILM_ID IN ( " +
-                    "SELECT f2.film_id " +
-                    "FROM films_director f2 " +
-                    "WHERE f2.director_id = ? )\n" +
-                    "GROUP BY f.FILM_ID\n" +
-                    "ORDER BY f.RELEASE_DATE;";
-
+        if (sortBy.equals("likes")) {
+            log.debug("Начат вывод фильмов с сортировкой Likes");
+            sql = GET_DIRECTORS_FILMS_LIKE;
+        } else {
+            log.debug("Начат вывод фильмов с сортировкой Years");
+            sql = GET_DIRECTORS_FILMS_YEAR;
+        }
         List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> filmMapper(rs), directorId);
         log.debug("Получен список из {} фильмов.", films.size());
         return films;
@@ -348,15 +456,9 @@ public class FilmDbDao implements FilmDao {
     @Override
     public List<Film> getCommonFilms(long userId, long friendId) {
         log.info("FilmDb: Запрос на получение общих фильмов пользователей с userId={} и friendId={}...", userId, friendId);
-        String getSql = "SELECT u.film_id,count(fl.FILM_ID) rating\n" +
-                "FROM (SELECT * FROM FILMS_LIKE fl WHERE USER_ID =?) u\n" +
-                "INNER JOIN \n" +
-                "(SELECT * FROM FILMS_LIKE fl WHERE USER_ID =?) f\n" +
-                "ON u.film_id=f.film_id\n" +
-                "LEFT JOIN FILMS_LIKE fl ON u.film_id=fl.FILM_ID \n" +
-                "GROUP BY fl.FILM_ID";
+        String getSql = GET_COMMON_FILMS;
         Object[] args = new Object[]{userId, friendId};
-        return getFilmsRatingSort(getSql,args);
+        return getFilmsRatingSort(getSql, args);
     }
 
     private Film filmMapper(ResultSet rs) throws SQLException {
@@ -364,7 +466,6 @@ public class FilmDbDao implements FilmDao {
         MPA mpa = new MPA();
         mpa.setId(rs.getInt("rating_id"));
         mpa.setName(rs.getString("rating_name"));
-
         return Film.builder()
                 .id(rs.getLong("film_id"))
                 .name(rs.getString("name"))
@@ -383,7 +484,7 @@ public class FilmDbDao implements FilmDao {
 
         String allFilmDirectors = rs.getString("DIRECTOR_ID_NAME");
 
-        if(allFilmDirectors == null || allFilmDirectors.isEmpty() || allFilmDirectors.isBlank() || allFilmDirectors.equals("-"))
+        if (allFilmDirectors == null || allFilmDirectors.isEmpty() || allFilmDirectors.isBlank() || allFilmDirectors.equals("-"))
             return directors;
 
         for (String filmDirector : allFilmDirectors.split(",")) {
@@ -438,7 +539,7 @@ public class FilmDbDao implements FilmDao {
                 "WHERE film_id = ?;";
         jdbcTemplate.update(sql, filmId);
 
-        if(directors != null)
+        if (directors != null)
             addDirectors(directors, filmId);
     }
 
@@ -449,94 +550,9 @@ public class FilmDbDao implements FilmDao {
             return searchedFilms;
         }
         String stringInSql = "%" + query.get().toLowerCase() + "%";
-        String searchFilmsSqlByName = "select f.FILM_ID\n" +
-                "  ,f.NAME\n" +
-                "  ,f.DESCRIPTION \n" +
-                "  ,f.RELEASE_DATE \n" +
-                "  ,f.DURATION \n" +
-                "  ,f.RATE\n" +
-                "  ,rm.RATING_ID\n" +
-                "  ,rm.RATING_NAME\n" +
-                "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
-                "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
-                "from (\n" +
-                "  SELECT fi.* \n" +
-                "        FROM FILMS fi \n" +
-                "        LEFT JOIN \n" +
-                "        (SELECT FILM_ID,COUNT(*) cLike \n" +
-                "            FROM FILMS_LIKE \n" +
-                "            GROUP BY FILM_ID\n" +
-                "        ) fil \n" +
-                "        ON fil.FILM_ID = fi.FILM_ID \n" +
-                "        ORDER BY clike DESC\n" +
-                ") f\n" +
-                "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
-                "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
-                "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
-                "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
-                "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
-                "WHERE LOWER(f.NAME) LIKE ?\n" +
-                "GROUP BY f.FILM_ID\n" +
-                "ORDER BY f.FILM_ID DESC;";
-        String searchFilmsSqlByDirector = "select f.FILM_ID\n" +
-                "  ,f.NAME\n" +
-                "  ,f.DESCRIPTION \n" +
-                "  ,f.RELEASE_DATE \n" +
-                "  ,f.DURATION \n" +
-                "  ,f.RATE\n" +
-                "  ,rm.RATING_ID\n" +
-                "  ,rm.RATING_NAME\n" +
-                "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
-                "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
-                "from (\n" +
-                "  SELECT fi.* \n" +
-                "        FROM FILMS fi \n" +
-                "        LEFT JOIN \n" +
-                "        (SELECT FILM_ID,COUNT(*) cLike \n" +
-                "            FROM FILMS_LIKE \n" +
-                "            GROUP BY FILM_ID\n" +
-                "        ) fil \n" +
-                "        ON fil.FILM_ID = fi.FILM_ID \n" +
-                "        ORDER BY clike DESC\n" +
-                ") f\n" +
-                "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
-                "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
-                "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
-                "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
-                "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
-                "WHERE LOWER(d.NAME) LIKE ?\n" +
-                "GROUP BY f.FILM_ID\n" +
-                "ORDER BY f.FILM_ID DESC;";
-        String searchFilmsSqlByAll = "select f.FILM_ID\n" +
-                "  ,f.NAME\n" +
-                "  ,f.DESCRIPTION \n" +
-                "  ,f.RELEASE_DATE \n" +
-                "  ,f.DURATION \n" +
-                "  ,f.RATE\n" +
-                "  ,rm.RATING_ID\n" +
-                "  ,rm.RATING_NAME\n" +
-                "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
-                "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
-                "from (\n" +
-                "  SELECT fi.* \n" +
-                "        FROM FILMS fi \n" +
-                "        LEFT JOIN \n" +
-                "        (SELECT FILM_ID,COUNT(*) cLike \n" +
-                "            FROM FILMS_LIKE \n" +
-                "            GROUP BY FILM_ID\n" +
-                "        ) fil \n" +
-                "        ON fil.FILM_ID = fi.FILM_ID \n" +
-                "        ORDER BY clike DESC\n" +
-                ") f\n" +
-                "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
-                "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
-                "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
-                "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
-                "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
-                "WHERE LOWER(f.NAME) LIKE ?\n" +
-                "OR LOWER(d.NAME) LIKE ?\n" +
-                "GROUP BY f.FILM_ID\n" +
-                "ORDER BY f.FILM_ID DESC;";
+        String searchFilmsSqlByName = GET_SEARCH_FILMS_BY_NAME;
+        String searchFilmsSqlByDirector = GET_SEARCH_FILMS_BY_DIRECTOR;
+        String searchFilmsSqlByAll = GET_SEARCH_FILMS_BY_ALL;
         if (by != null) {
             log.debug("Получен запрос с параметром by");
             if (by.size() == 1 & by.contains("title")) {

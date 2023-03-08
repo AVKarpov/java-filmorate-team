@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exceptions.SortingIsNotSupportedException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
@@ -9,7 +10,7 @@ import ru.yandex.practicum.filmorate.exceptions.film.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.user.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.storage.film.dao.*;
-import ru.yandex.practicum.filmorate.storage.film.daoImpl.DirectorDaoImpl;
+import ru.yandex.practicum.filmorate.storage.film.daoImpl.DirectorDbDao;
 import ru.yandex.practicum.filmorate.storage.user.dao.UserDao;
 
 import java.util.List;
@@ -31,12 +32,12 @@ public class FilmService {
     private final GenreDao genreDao;
     private final DirectorDao directorDao;
 
-    public FilmService(FilmDao filmStorage,
-                       UserDao userStorage,
-                       MpaDao mpaDao,
-                       FilmLikeDao filmLikeDao,
-                       GenreDao genreDao,
-                       DirectorDaoImpl directorDao) {
+    public FilmService(@Qualifier("filmDbStorage") FilmDao filmStorage,
+                       @Qualifier("userDbDao") UserDao userStorage,
+                       @Qualifier("mpaDbDao") MpaDao mpaDao,
+                       @Qualifier("filmLikeDbDao") FilmLikeDao filmLikeDao,
+                       @Qualifier("genreDbDao") GenreDao genreDao,
+                       @Qualifier("directorDbDao") DirectorDbDao directorDao) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.mpaDao = mpaDao;
@@ -116,15 +117,11 @@ public class FilmService {
         //проверка существования фильма с id
         isValidFilmId(filmId);
         isValidUserId(userId);
-        Film film=filmStorage.getFilm(filmId);
-        if(film==null) {
-            throw new FilmNotFoundException("Фильм с id="+filmId+" не найден.");
-        }
+        Film film=Optional.ofNullable(filmStorage.getFilm(filmId))
+                .orElseThrow(()->new FilmNotFoundException("Фильм с id="+filmId+" не найден."));
         //проверка существования пользователя с id
-        User user=userStorage.getUser(userId);
-        if(user==null) {
-            throw new UserNotFoundException("Пользователь с id=" + userId + " не найден.");
-        }
+        User user=Optional.ofNullable(userStorage.getUser(userId))
+                .orElseThrow(()->new UserNotFoundException("Пользователь с id=" + userId + " не найден."));
         filmLikeDao.addLike(filmId,userId);
     }
 
@@ -156,7 +153,6 @@ public class FilmService {
             log.debug("Sorting {} is not supported.", sortBy);
             throw new SortingIsNotSupportedException("Sorting " + sortBy + " is not supported.");
         }
-
         return filmStorage.getDirectorsFilms(directorId, sortBy);
     }
 
