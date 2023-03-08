@@ -11,6 +11,7 @@ import ru.yandex.practicum.filmorate.exceptions.director.DirectorNotFoundExcepti
 import ru.yandex.practicum.filmorate.exceptions.film.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.genre.GenreNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.mpa.MpaNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.review.ReviewNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.user.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.ErrorResponse;
 
@@ -27,6 +28,12 @@ public class ErrorHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleUserNotFoundException(final UserNotFoundException e) {
+        return new ErrorResponse("id пользователя", e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleReviewNotFoundException(final ReviewNotFoundException e) {
         return new ErrorResponse("id пользователя", e.getMessage());
     }
 
