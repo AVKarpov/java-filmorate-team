@@ -1,4 +1,7 @@
 --удаляем все данные и обнуляем счётчики первичных ключей
+DELETE FROM FEEDS;
+DELETE FROM EVENT_TYPES;
+DELETE FROM OPERATIONS;
 DELETE FROM FILMS_GENRE;
 DELETE FROM GENRE;
 DELETE FROM FILMS_LIKE;
@@ -14,6 +17,9 @@ ALTER TABLE FILMS_LIKE ALTER COLUMN films_like_id RESTART WITH 1;
 ALTER TABLE FRIENDS ALTER COLUMN user_friend_id RESTART WITH 1;
 ALTER TABLE GENRE ALTER COLUMN genre_id RESTART WITH 1;
 ALTER TABLE USERS ALTER COLUMN user_id RESTART WITH 1;
+ALTER TABLE FEEDS ALTER COLUMN event_id RESTART WITH 1;
+ALTER TABLE EVENT_TYPES ALTER COLUMN id RESTART WITH 1;
+ALTER TABLE OPERATIONS ALTER COLUMN id RESTART WITH 1;
 
 --заполняем таблицу ratings
 INSERT INTO ratings_mpa(rating_name) VALUES('G'),
@@ -29,6 +35,16 @@ INSERT INTO genre(genre_name) VALUES('Комедия'),
                                     ('Триллер'),
                                     ('Документальный'),
                                     ('Боевик');
+
+--заполянем таблицу event_types
+INSERT INTO event_types(event_type) VALUES('LIKE'),
+                                    ('REVIEW'),
+                                    ('FRIEND');
+
+--заполянем таблицу operations
+INSERT INTO operations(operation) VALUES('REMOVE'),
+                                    ('ADD'),
+                                    ('UPDATE');
 
 --заполняем таблицу users
 INSERT INTO users(email,login,name,birthday) VALUES('user1@mail.ru','user1_login','user1_name','1990-12-01'),

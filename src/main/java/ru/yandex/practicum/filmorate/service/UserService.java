@@ -5,8 +5,10 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.exceptions.user.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.feed.Feed;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.film.dao.FilmLikeDao;
+import ru.yandex.practicum.filmorate.storage.film.daoImpl.FeedDbDao;
 import ru.yandex.practicum.filmorate.storage.user.dao.FriendsDao;
 import ru.yandex.practicum.filmorate.storage.user.dao.UserDao;
 
@@ -21,11 +23,16 @@ public class UserService {
    private final UserDao userStorage;
    private final FriendsDao friendsDao;
    private final FilmLikeDao filmLikeDao;
+   private final FeedDbDao feedDbDao;
 
-    public UserService(UserDao userStorage, FriendsDao friendsDao, FilmLikeDao filmLikeDao) {
+    public UserService(UserDao userStorage,
+                       FriendsDao friendsDao,
+                       FilmLikeDao filmLikeDao
+                       FeedDbDao feedDbDao) {
         this.userStorage = userStorage;
         this.friendsDao = friendsDao;
         this.filmLikeDao = filmLikeDao;
+        this.feedDbDao = feedDbDao;
     }
 
     //добавление пользователя
@@ -105,6 +112,12 @@ public class UserService {
         log.info("Service: получен запрос на вывод рекомендаций фильмов для userId={}.", userIdTrue);
         isValidIdUser(userIdTrue);
         return filmLikeDao.getRecomendationFilm(userIdTrue);
+    }
+
+    public List<Feed> getUserFeed(long userId) {
+        log.info("Получен запрос ленты событий пользователя с userId={}", userId);
+        isValidIdUser(userId);
+        return feedDbDao.getFeed(userId);
     }
 
     private boolean isValidIdUser(long userId) {

@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.feed.Feed;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
@@ -13,7 +14,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/users")
-@Qualifier("userInMemoryDao")
+@Qualifier("userDbDao")
 @Slf4j
 public class UserController {
 
@@ -88,5 +89,9 @@ public class UserController {
         return userService.getRecommendations(userId);
     }
 
-
+    //возвращение ленты событий пользователя
+    @GetMapping("/{id}/feed")
+    private List<Feed> getFeed(@PathVariable("id") long userId) {
+        return userService.getUserFeed(userId);
+    }
 }
