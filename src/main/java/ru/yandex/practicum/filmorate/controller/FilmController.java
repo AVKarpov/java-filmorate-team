@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
@@ -30,21 +31,25 @@ public class FilmController {
     //обновление фильма
     @PutMapping
     protected Film updateFilm(@Valid @RequestBody Film film) {
-        log.info("Получен запрос на обновление фильма: {}", film.getId());
+        log.info("Получен запрос на обновление фильма: {}",film.getId());
         return filmService.updateFilm(film);
     }
 
     //удаление фильма по id
     @DeleteMapping("/{id}")
     protected void deleteFilm(@PathVariable("id") long filmId) {
-        log.info("Получен запрос на удаление фильма: {}", filmId);
+        log.info("Получен запрос на удаление фильма: {}",filmId);
         filmService.deleteFilm(filmId);
     }
 
+    @GetMapping( "/popular") //films/popular?count={limit}&genreId={genreId}&year={year}
+    public List<Film> getPopularFilmGenreIdYear(@RequestParam (defaultValue = "10") Integer count, @RequestParam (defaultValue = "0") Integer year){
+        return filmService.getPopularFilmGenreIdYear(count, genreId, year);
+    }
     //получение фильма по id
     @GetMapping("/{id}")
     protected Film getFilm(@PathVariable("id") long filmId) {
-        log.info("Получен запрос на чтение фильма с id={}", filmId);
+        log.info("Получен запрос на чтение фильма с id={}",filmId);
         return filmService.getFilm(filmId);
     }
 

@@ -142,6 +142,11 @@ public class InMemoryFilmStorage implements FilmDao {
         return null;
     }
 
+    @Override
+    public Object getPopularFilmGenreIdYear(long year, long genreId, long count) {
+        return null;
+    }
+
     //генерация очередного id фильма
     private int generateId() {
         return ++maxId;

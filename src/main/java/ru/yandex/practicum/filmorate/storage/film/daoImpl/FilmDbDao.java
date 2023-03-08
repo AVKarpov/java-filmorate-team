@@ -587,4 +587,60 @@ public class FilmDbDao implements FilmDao {
         }
         return searchedFilms;
     }
+
+    @Override
+    public List<Long> getPopularFilmGenreIdYear(long year, long genreId, long count) {
+        if(year == 0 && genreId == 0 ){
+            log.debug("Extracting {} popular films from the database", count);
+            String sql = "SELECT FILM_ID \n" +
+                    "FROM (\n" +
+                    "\tSELECT f.ID film_id, COUNT(l.USER_ID) likes_count \n" +
+                    "\tFROM FILMS f \n" +
+                    "\tLEFT JOIN LIKES l ON f.ID=l.FILM_ID \n" +
+                    "\tGROUP BY f.ID\n" +
+                    "\tORDER BY likes_count DESC) AS POPULAR\n" +
+                    "\tLIMIT ?;";
+            ArrayList<Long> idFilms = new ArrayList<>(jdbcTemplate.queryForList(sql, Long.class, count));
+            return idFilms;
+        }else if(genreId > 0 && year == 0){
+            log.debug("Extracting {} popular films from the database", genreId);
+            String sql = "SELECT ID \n" +
+                    "FROM FILMS AS fi \n" +
+                    "LEFT JOIN FILM_GENRE AS fg ON fi.id = fg.film_id \n" +
+                    "LEFT JOIN LIKES AS li ON fi.id = li.film_id \n" +
+                    "WHERE GENRE_ID = ? \n" +
+                    "GROUP BY ID \n" +
+                    "ORDER BY COUNT(GENRE_ID) DESC \n";
+            ArrayList<Long> idFilms = new ArrayList<>(jdbcTemplate.queryForList(sql, Long.class, genreId));
+            return idFilms;
+
+        }else if(year > 0 && genreId == 0){
+            log.debug("Extracting {} popular films from the database", year);
+            String sql = "SELECT ID \n" +
+                    "FROM FILMS AS fi \n" +
+                    "LEFT JOIN FILM_GENRE AS fg ON fi.id = fg.film_id \n" +
+                    "LEFT JOIN LIKES AS li ON fi.id = li.film_id \n" +
+                    "WHERE EXTRACT(YEAR FROM RELEASE_DATE) = ? \n" +
+                    "GROUP BY ID \n" +
+                    "ORDER BY COUNT(GENRE_ID) DESC \n";
+            ArrayList<Long> idFilms = new ArrayList<>(jdbcTemplate.queryForList(sql, Long.class, year));
+            return idFilms;
+
+        }else {
+            log.debug("Extract from the database of popular films by genre and year genreId = "+ genreId + "year = " + year);
+            String sql = "SELECT ID \n" +
+                    "FROM (\n" +
+                    "\tSELECT ID, COUNT(USER_ID) AS LIKES_COUNT \n" +
+                    "\tFROM FILMS AS fi \n" +
+                    "\tLEFT JOIN FILM_GENRE AS fg ON fi.id = fg.film_id \n" +
+                    "\tLEFT JOIN LIKES AS li ON fi.id = li.film_id \n" +
+                    "\tWHERE  EXTRACT(YEAR FROM RELEASE_DATE) = ? AND GENRE_ID = ? \n" +
+                    "\tGROUP BY ID \n" +
+                    "\tORDER BY LIKES_COUNT DESC) \n" +
+                    "\tLIMIT ?";
+            ArrayList<Long> idFilms = new ArrayList<>(jdbcTemplate.queryForList(sql, Long.class, year, genreId, count));
+            return idFilms;
+        }
+    }
+
 }

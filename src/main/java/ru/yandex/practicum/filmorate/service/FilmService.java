@@ -13,6 +13,8 @@ import ru.yandex.practicum.filmorate.storage.film.dao.*;
 import ru.yandex.practicum.filmorate.storage.film.daoImpl.DirectorDbDao;
 import ru.yandex.practicum.filmorate.storage.user.dao.UserDao;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -30,7 +32,6 @@ public class FilmService {
     private final MpaDao mpaDao;
     private final FilmLikeDao filmLikeDao;
     private final GenreDao genreDao;
-    private final DirectorDao directorDao;
 
     public FilmService(@Qualifier("filmDbStorage") FilmDao filmStorage,
                        @Qualifier("userDbDao") UserDao userStorage,
@@ -249,5 +250,15 @@ public class FilmService {
 
     public List<Film> searchFilms(Optional<String> query, List<String> by) {
         return filmStorage.searchFilms(query,by);
+    }
+
+    public List<Film> getPopularFilmGenreIdYear(long count, long genreId, long year){
+        List<Long> filmIdSorted = new ArrayList<>((Collection) filmStorage.getPopularFilmGenreIdYear(year, genreId, count));
+        List<Film> mutualFilmList = new ArrayList<>();
+        for(long t: filmIdSorted){
+            mutualFilmList.add(filmStorage.getFilm(t));
+        }
+
+        return mutualFilmList;
     }
 }
