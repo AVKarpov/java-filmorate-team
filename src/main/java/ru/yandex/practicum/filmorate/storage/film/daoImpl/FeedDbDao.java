@@ -41,7 +41,7 @@ public class FeedDbDao implements FeedDao {
         values.put("entity_id", entityId);
 
         long id = simpleJdbcInsert.executeAndReturnKey(values).longValue();
-        log.info("В Ленту добавлено событие c id = {}: {}", id,values.toString());
+        log.info("В Ленту добавлено событие c id = {}: {}", id, values);
     }
 
     @Override

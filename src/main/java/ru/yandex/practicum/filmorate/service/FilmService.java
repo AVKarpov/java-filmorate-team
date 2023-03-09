@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 //отвечает за операции с фильмами, — добавление и удаление лайка, вывод 10 наиболее популярных фильмов
 // по количеству лайков. Пусть пока каждый пользователь может поставить лайк фильму только один раз.
@@ -117,12 +116,12 @@ public class FilmService {
         //проверка существования фильма с id
         isValidFilmId(filmId);
         isValidUserId(userId);
-        Film film=Optional.ofNullable(filmStorage.getFilm(filmId))
-                .orElseThrow(()->new FilmNotFoundException("Фильм с id="+filmId+" не найден."));
+        Optional.ofNullable(filmStorage.getFilm(filmId))
+                .orElseThrow(()->new FilmNotFoundException("Фильм с id=" + filmId + " не найден."));
         //проверка существования пользователя с id
-        User user=Optional.ofNullable(userStorage.getUser(userId))
+        Optional.ofNullable(userStorage.getUser(userId))
                 .orElseThrow(()->new UserNotFoundException("Пользователь с id=" + userId + " не найден."));
-        filmLikeDao.addLike(filmId,userId);
+        filmLikeDao.addLike(filmId, userId);
     }
 
     //пользователь удаляет лайк.
@@ -130,7 +129,7 @@ public class FilmService {
         log.debug("Запрос на удаление лайка фильму с id={} лайка от пользователя с userId={}", filmId, userId);
         isValidFilmId(filmId);
         isValidUserId(userId);
-        filmLikeDao.deleteLike(filmId,userId);
+        filmLikeDao.deleteLike(filmId, userId);
     }
 
     //вывод популярных фильмов,если параметр не задан, то выводим 10 фильмов
@@ -157,17 +156,13 @@ public class FilmService {
     }
 
     //вернуть общие фильмы для пользователей
-    public List<Film> getCommonFilms(Optional<String> userId, Optional<String> friendId) {
-        log.info("FilmService: Запрошены общие фильмы пользователей.");
-        long userIdTrue = getDigitOfString(userId);
-        long friendIdTrue = getDigitOfString(friendId);
-        //проверка значений userId и friendId как на значение >0, так и на соответствие Long
-        log.info("FilmService: Запрос на получение общих фильмов пользователей с userId={} и friendId={}..."
-                , userIdTrue, friendIdTrue);
-        isValidUserId(userIdTrue);
-        isValidUserId(friendIdTrue);
-        isNotEqualIdUser(userIdTrue, friendIdTrue);
-        return filmStorage.getCommonFilms(userIdTrue, friendIdTrue);
+    public List<Film> getCommonFilms(long userId, long friendId) {
+        log.info("FilmService: Запрос на получение общих фильмов пользователей с userId={} и friendId={}...",
+                userId, friendId);
+        isValidUserId(userId);
+        isValidUserId(friendId);
+        isNotEqualIdUser(userId, friendId);
+        return filmStorage.getCommonFilms(userId, friendId);
     }
 
     //проверка корректности значений filmId
@@ -198,7 +193,7 @@ public class FilmService {
 
     //проверка наличие видов жанров добавляемого/обновляемого фильма в БД
     private boolean isGenres(Set<Genre> genres) {
-        Set<Integer> genresId = genreDao.getGenresFilms().stream().map(g -> g.getId()).collect(Collectors.toSet());
+        Set<Integer> genresId = genreDao.getGenresFilms().stream().map(Genre::getId).collect(Collectors.toSet());
         for (Genre gr : genres) {
             if (!genresId.contains(gr.getId())) {
                 log.debug("Для фильма не найден жанр с id=" + gr.getId());
@@ -213,23 +208,12 @@ public class FilmService {
         List<Integer> directorsId = directorDao.getAllDirectors().stream().map(Director::getId).collect(Collectors.toList());
         for(Director director : directors) {
             if(!directorsId.contains(director.getId())) {
-                log.debug("Для фильма не найден директор с id=" + director.getId());
+                log.debug("Для фильма не найден режиссер с id=" + director.getId());
                 return false;
             }
         }
         return true;
     }
-
-    //возвращает из строки числовое значение
-
-    private Long getDigitOfString(Optional<String> str) {
-        return Stream.of(str.get())
-                .limit(1)
-                .map(this::stringParseLong)
-                .findFirst()
-                .get();
-    }
-
 
     //проверяет не равныли id пользователя и друга
     public boolean isNotEqualIdUser(long userId, long friendId) {
@@ -239,13 +223,13 @@ public class FilmService {
         return true;
     }
 
-    private Long stringParseLong(String str) {
-        try {
-            return Long.parseLong(str);
-        } catch (RuntimeException e) {
-            throw new ValidationException("Передан некорректный userId.");
-        }
-    }
+//    private Long stringParseLong(String str) {
+//        try {
+//            return Long.parseLong(str);
+//        } catch (RuntimeException e) {
+//            throw new ValidationException("Передан некорректный userId.");
+//        }
+//    }
 
     public List<Film> searchFilms(Optional<String> query, List<String> by) {
         return filmStorage.searchFilms(query,by);

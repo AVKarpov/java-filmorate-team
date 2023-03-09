@@ -5,8 +5,8 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import java.util.List;
 
 public interface GenreDao {
-    Genre getGenge(int id);
-    List<Genre> getGengesFilm(long filmId);
+    Genre getGenre(int id);
+    List<Genre> getGenresFilm(long filmId);
 
     List<Genre> getGenresFilms();
 

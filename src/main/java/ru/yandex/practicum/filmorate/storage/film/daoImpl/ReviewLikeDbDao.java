@@ -5,9 +5,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.storage.film.dao.ReviewLikeDao;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 @Component("reviewLikeDbStorage")
 @Slf4j
 public class ReviewLikeDbDao implements ReviewLikeDao {
