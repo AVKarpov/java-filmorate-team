@@ -118,27 +118,32 @@ public class InMemoryFilmStorage implements FilmDao {
         return this.films.get(filmId);
     }
 
-    @Override
-    public List<Film> getPopularFilms(long maxCount) {
-        log.debug("Запрос на получение {} популярных фильмов...", maxCount);
-        Map<Long, Integer> popFilms= inMemoryFilmLikeDao.getPopularFilms();
-        for(Long pf:films.keySet()) {
-            if(!popFilms.containsKey(pf)) {
-                log.debug("Добавлен фильм filmId={} с нулевым рейтингом.",pf);
-                popFilms.put(pf,0);
-            }
-        }
-        log.debug("Найдено {} популярных фильмов.",popFilms.size());
-        return popFilms.entrySet().stream()
-                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
-                .map(f->getFilm(f.getKey()))
-                .limit(maxCount)
-                .collect(Collectors.toList());
-    }
+//    @Override
+//    public List<Film> getPopularFilms(long maxCount) {
+//        log.debug("Запрос на получение {} популярных фильмов...", maxCount);
+//        Map<Long, Integer> popFilms= inMemoryFilmLikeDao.getPopularFilms();
+//        for(Long pf:films.keySet()) {
+//            if(!popFilms.containsKey(pf)) {
+//                log.debug("Добавлен фильм filmId={} с нулевым рейтингом.",pf);
+//                popFilms.put(pf,0);
+//            }
+//        }
+//        log.debug("Найдено {} популярных фильмов.",popFilms.size());
+//        return popFilms.entrySet().stream()
+//                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+//                .map(f->getFilm(f.getKey()))
+//                .limit(maxCount)
+//                .collect(Collectors.toList());
+//    }
 
     @Override
     public List<Film> getDirectorsFilms(int directorId, String sortBy) {
         log.debug("Request to get directors films from DB.");
+        return null;
+    }
+
+    @Override
+    public List<Film> getPopularFilmGenreIdYear(long year, long genreId, long count) {
         return null;
     }
 

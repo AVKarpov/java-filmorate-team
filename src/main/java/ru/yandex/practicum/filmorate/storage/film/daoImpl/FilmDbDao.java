@@ -43,6 +43,105 @@ public class FilmDbDao implements FilmDao {
             "LEFT JOIN directors d ON fd.director_id = d.director_id " +
             "GROUP BY f.film_id";
 
+    private final String GET_POPULAR_FILMS_YEAR ="select f.FILM_ID\n" +
+            "  ,f.NAME\n" +
+            "  ,f.DESCRIPTION \n" +
+            "  ,f.RELEASE_DATE \n" +
+            "  ,f.DURATION \n" +
+            "  ,f.RATE\n" +
+            "  ,rm.RATING_ID\n" +
+            "  ,rm.RATING_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
+            "from (\n" +
+            "  SELECT fi.* \n" +
+            "        FROM (\n" +
+            "\t\tSELECT fk.*,fg.GENRE_ID FROM FILMS fk\n" +
+            "\t\tLEFT JOIN FILMS_GENRE fg\n" +
+            "\t\tON fk.film_id=fg.film_id\n" +
+            "\t) fi\n" +
+            "        LEFT JOIN \n" +
+            "        (SELECT FILM_ID,COUNT(*) cLike \n" +
+            "            FROM FILMS_LIKE \n" +
+            "            GROUP BY FILM_ID\n" +
+            "        ) fil \n" +
+            "        ON fil.FILM_ID = fi.FILM_ID \n" +
+            "        WHERE YEAR(fi.RELEASE_DATE) =? \n" +
+            "        ORDER BY clike DESC limit(?)\n" +
+            ") f\n" +
+            "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
+            "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
+            "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
+            "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
+            "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
+            "GROUP BY f.FILM_ID;";
+
+    private final String GET_POPULAR_FILMS_GENRE ="select f.FILM_ID\n" +
+            "  ,f.NAME\n" +
+            "  ,f.DESCRIPTION \n" +
+            "  ,f.RELEASE_DATE \n" +
+            "  ,f.DURATION \n" +
+            "  ,f.RATE\n" +
+            "  ,rm.RATING_ID\n" +
+            "  ,rm.RATING_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
+            "from (\n" +
+            "  SELECT fi.* \n" +
+            "        FROM (\n" +
+            "\t\tSELECT fk.*,fg.GENRE_ID FROM FILMS fk\n" +
+            "\t\tLEFT JOIN FILMS_GENRE fg\n" +
+            "\t\tON fk.film_id=fg.film_id\n" +
+            "\t) fi\n" +
+            "        LEFT JOIN \n" +
+            "        (SELECT FILM_ID,COUNT(*) cLike \n" +
+            "            FROM FILMS_LIKE \n" +
+            "            GROUP BY FILM_ID\n" +
+            "        ) fil \n" +
+            "        ON fil.FILM_ID = fi.FILM_ID \n" +
+            "        WHERE fi.GENRE_ID = ?\n" +
+            "        ORDER BY clike DESC limit(?)\n" +
+            ") f\n" +
+            "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
+            "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
+            "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
+            "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
+            "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
+            "GROUP BY f.FILM_ID;";
+
+    private final String GET_POPULAR_FILMS_YEAR_GENRE ="select f.FILM_ID\n" +
+            "  ,f.NAME\n" +
+            "  ,f.DESCRIPTION \n" +
+            "  ,f.RELEASE_DATE \n" +
+            "  ,f.DURATION \n" +
+            "  ,f.RATE\n" +
+            "  ,rm.RATING_ID\n" +
+            "  ,rm.RATING_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(g.GENRE_ID,'-',g.GENRE_NAME) ORDER BY Concat(g.GENRE_ID,'-',g.GENRE_NAME)) AS GENRE_ID_NAME\n" +
+            "  ,GROUP_CONCAT(DISTINCT Concat(d.DIRECTOR_ID, '-', d.NAME) ORDER BY Concat(d.DIRECTOR_ID, '-', d.NAME)) AS DIRECTOR_ID_NAME\n" +
+            "from (\n" +
+            "  SELECT fi.* \n" +
+            "        FROM (\n" +
+            "\t\tSELECT fk.*,fg.GENRE_ID FROM FILMS fk\n" +
+            "\t\tLEFT JOIN FILMS_GENRE fg\n" +
+            "\t\tON fk.film_id=fg.film_id\n" +
+            "\t) fi\n" +
+            "        LEFT JOIN \n" +
+            "        (SELECT FILM_ID,COUNT(*) cLike \n" +
+            "            FROM FILMS_LIKE \n" +
+            "            GROUP BY FILM_ID\n" +
+            "        ) fil \n" +
+            "        ON fil.FILM_ID = fi.FILM_ID \n" +
+            "        WHERE YEAR(fi.RELEASE_DATE) = ? AND fi.GENRE_ID = ?\n" +
+            "        ORDER BY clike DESC limit(?)\n" +
+            ") f\n" +
+            "LEFT JOIN RATINGS_MPA rm  ON f.RATING_ID =rm.RATING_ID \n" +
+            "LEFT JOIN FILMS_GENRE fg ON f.FILM_ID =fg.FILM_ID \n" +
+            "LEFT JOIN GENRE g ON fg.GENRE_ID =g.GENRE_ID\n" +
+            "LEFT JOIN FILMS_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID\n" +
+            "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID\n" +
+            "GROUP BY f.FILM_ID;";
+
     private final String GET_FILM_ID = "SELECT f.*, rm.*, " +
             "GROUP_CONCAT(DISTINCT Concat(g.genre_id, '-', g.genre_name) ORDER BY Concat(g.genre_id,'-',g.genre_name)) AS genre_id_name, " +
             "GROUP_CONCAT(DISTINCT Concat(d.director_id, '-', d.name) ORDER BY Concat(d.director_id, '-', d.name)) AS director_id_name " +
@@ -336,13 +435,21 @@ public class FilmDbDao implements FilmDao {
     }
 
     @Override
-    public List<Film> getPopularFilms(long maxCount) {
-        List<Film> popFilms = jdbcTemplate.query(GET_POPULAR_FILMS, (rs, rowNum) -> filmMapper(rs), maxCount);
-        log.debug("Популярные фильмы:");
-        for (Film film : popFilms) {
-            log.debug("Фильм с film_id={}: {}", film.getId(), film);
+    public List<Film> getPopularFilmGenreIdYear(long count,long genreId,long year) {
+        if(year == 0 && genreId == 0) {
+            log.debug("Extracting {} popular films from the database", count);
+            return jdbcTemplate.query(GET_POPULAR_FILMS, (rs, rowNum) -> filmMapper(rs), count);
+        }else if(year > 0 && genreId == 0){
+            log.debug("Фильтры запроса: count={},year={}",count,year);
+            return jdbcTemplate.query(GET_POPULAR_FILMS_YEAR, (rs, rowNum) -> filmMapper(rs),new Object[]{year,count});
+        }else if(year == 0 && genreId > 0){
+            log.debug("Фильтры запроса: count={},genreId={}",count,year);
+            return jdbcTemplate.query(GET_POPULAR_FILMS_GENRE, (rs, rowNum) -> filmMapper(rs),new Object[]{genreId,count});
+        }else {
+            log.debug("Фильтры запроса: count={},year={}, genreId={}",count,year,genreId);
+            return jdbcTemplate.query(GET_POPULAR_FILMS_YEAR_GENRE, (rs, rowNum) -> filmMapper(rs),
+                    new Object[]{year,genreId,count});
         }
-        return popFilms;
     }
 
     @Override
@@ -487,4 +594,5 @@ public class FilmDbDao implements FilmDao {
         }
         return searchedFilms;
     }
+
 }

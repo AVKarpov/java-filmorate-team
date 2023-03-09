@@ -67,11 +67,11 @@ public class FilmController {
         filmService.deleteLike(filmId, userId);
     }
 
-    //вернуть самые популярные фильмы
-    @GetMapping("/popular")
-    protected List<Film> getPopularFilms(@RequestParam(defaultValue = "10", required = false) long count) {
-        log.info("1.Запрос на получение {} популярных фильмов...", count);
-        return filmService.getPopularFilms(count);
+    @GetMapping( "/popular") //films/popular?count={limit}&genreId={genreId}&year={year}
+    public List<Film> getPopularFilmGenreIdYear(@RequestParam (defaultValue = "10",required = false) Optional<String> count,
+                                                @RequestParam (defaultValue = "0",required = false) Optional<String> genreId,
+                                                @RequestParam (defaultValue = "0",required = false) Optional<String> year){
+        return filmService.getPopularFilmGenreIdYear(count, genreId, year);
     }
 
     //вернуть общие фильмы для пользователей

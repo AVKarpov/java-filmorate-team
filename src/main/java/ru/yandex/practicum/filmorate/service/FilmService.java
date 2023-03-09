@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exceptions.SortingIsNotSupportedException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.exceptions.director.DirectorNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.film.FilmBadParameterException;
 import ru.yandex.practicum.filmorate.exceptions.film.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.user.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.*;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 //отвечает за операции с фильмами, — добавление и удаление лайка, вывод 10 наиболее популярных фильмов
 // по количеству лайков. Пусть пока каждый пользователь может поставить лайк фильму только один раз.
@@ -133,13 +135,26 @@ public class FilmService {
     }
 
     //вывод популярных фильмов,если параметр не задан, то выводим 10 фильмов
-    public List<Film> getPopularFilms(long count) {
-        //проверка корректности значения count : null, меньше 0
-        if (count <= 0) {
-            throw new ValidationException("Запрошено отрицательное количество популярных фильмов.");
-        }
-        log.debug("Запрос на получение {} популярных фильмов...", count);
-        return filmStorage.getPopularFilms(count);
+//    public List<Film> getPopularFilms(long count) {
+//        //проверка корректности значения count : null, меньше 0
+//        if (count <= 0) {
+//            throw new ValidationException("Запрошено отрицательное количество популярных фильмов.");
+//        }
+//        log.debug("Запрос на получение {} популярных фильмов...", count);
+//        return filmStorage.getPopularFilms(count);
+//    }
+
+    public List<Film> getPopularFilmGenreIdYear(Optional<String> count, Optional<String> genreId, Optional<String> year){
+        log.info("Запрошены популярные фильмы.");
+        long countTrue = getLongOfString(count);
+        long genreIdTrue = getLongOfString(genreId);
+        long yearTrue = getLongOfString(year);
+        log.info("Запрос на получение популярных фильмов, параметры фильтра count={}, genreId={}, year={}"
+                ,countTrue, genreIdTrue, yearTrue);
+        isValidAboveZero(countTrue);
+        isValidAboveZero(genreIdTrue);
+        isValidAboveZero(yearTrue);
+        return filmStorage.getPopularFilmGenreIdYear(countTrue, genreIdTrue, yearTrue);
     }
 
     public List<Film> getDirectorFilms(int directorId, String sortBy) {
@@ -181,6 +196,13 @@ public class FilmService {
         return true;
     }
 
+    //проверка корректности параметров вывода фильмов
+    private boolean isValidAboveZero(long param) {
+        if (param < 0) {
+            throw new FilmBadParameterException("Некорректное значение параметра.");
+        }
+        return true;
+    }
     //проверка наличие видов рейтингов добавляемого/обновляемого фильма в БД
     private boolean isRatingsMpa(int mpaId) {
         MPA ratingMpa = mpaDao.getRating(mpaId);
@@ -215,6 +237,17 @@ public class FilmService {
         return true;
     }
 
+    //возвращает из строки числовое значение
+
+    private Long getLongOfString(Optional<String> str) {
+        return Stream.of(str.get())
+                .limit(1)
+                .map(this::stringParseLong)
+                .findFirst()
+                .get();
+    }
+
+
     //проверяет не равныли id пользователя и друга
     public boolean isNotEqualIdUser(long userId, long friendId) {
         if (userId == friendId) {
@@ -223,15 +256,16 @@ public class FilmService {
         return true;
     }
 
-//    private Long stringParseLong(String str) {
-//        try {
-//            return Long.parseLong(str);
-//        } catch (RuntimeException e) {
-//            throw new ValidationException("Передан некорректный userId.");
-//        }
-//    }
+    private Long stringParseLong(String str) {
+        try {
+            return Long.parseLong(str);
+        } catch (RuntimeException e) {
+            throw new ValidationException("Передан некорректный числовой параметр.");
+        }
+    }
 
     public List<Film> searchFilms(Optional<String> query, List<String> by) {
         return filmStorage.searchFilms(query,by);
     }
+
 }
