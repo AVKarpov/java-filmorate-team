@@ -134,27 +134,10 @@ public class FilmService {
         filmLikeDao.deleteLike(filmId, userId);
     }
 
-    //вывод популярных фильмов,если параметр не задан, то выводим 10 фильмов
-//    public List<Film> getPopularFilms(long count) {
-//        //проверка корректности значения count : null, меньше 0
-//        if (count <= 0) {
-//            throw new ValidationException("Запрошено отрицательное количество популярных фильмов.");
-//        }
-//        log.debug("Запрос на получение {} популярных фильмов...", count);
-//        return filmStorage.getPopularFilms(count);
-//    }
-
-    public List<Film> getPopularFilmGenreIdYear(Optional<String> count, Optional<String> genreId, Optional<String> year){
-        log.info("Запрошены популярные фильмы.");
-        long countTrue = getLongOfString(count);
-        long genreIdTrue = getLongOfString(genreId);
-        long yearTrue = getLongOfString(year);
-        log.info("Запрос на получение популярных фильмов, параметры фильтра count={}, genreId={}, year={}"
-                ,countTrue, genreIdTrue, yearTrue);
-        isValidAboveZero(countTrue);
-        isValidAboveZero(genreIdTrue);
-        isValidAboveZero(yearTrue);
-        return filmStorage.getPopularFilmGenreIdYear(countTrue, genreIdTrue, yearTrue);
+    public List<Film> getPopularFilmGenreIdYear(long count, long genreId, long year){
+        log.info("Запрос на получение популярных фильмов, параметры фильтра count={}, genreId={}, year={}",
+                count, genreId, year);
+        return filmStorage.getPopularFilmGenreIdYear(count, genreId, year);
     }
 
     public List<Film> getDirectorFilms(int directorId, String sortBy) {
@@ -237,16 +220,6 @@ public class FilmService {
         return true;
     }
 
-    //возвращает из строки числовое значение
-
-    private Long getLongOfString(Optional<String> str) {
-        return Stream.of(str.get())
-                .limit(1)
-                .map(this::stringParseLong)
-                .findFirst()
-                .get();
-    }
-
 
     //проверяет не равныли id пользователя и друга
     public boolean isNotEqualIdUser(long userId, long friendId) {
@@ -254,14 +227,6 @@ public class FilmService {
             throw new UserNotFoundException("Пользователь с id=" + userId + " не может добавить сам себя в друзья.");
         }
         return true;
-    }
-
-    private Long stringParseLong(String str) {
-        try {
-            return Long.parseLong(str);
-        } catch (RuntimeException e) {
-            throw new ValidationException("Передан некорректный числовой параметр.");
-        }
     }
 
     public List<Film> searchFilms(Optional<String> query, List<String> by) {
