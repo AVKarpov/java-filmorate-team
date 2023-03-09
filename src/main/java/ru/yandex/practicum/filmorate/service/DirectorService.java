@@ -2,15 +2,18 @@ package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import ru.yandex.practicum.filmorate.exceptions.director.DirectorIdIsNullException;
 import ru.yandex.practicum.filmorate.exceptions.director.DirectorNotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.storage.film.dao.DirectorDao;
 import ru.yandex.practicum.filmorate.storage.film.daoImpl.DirectorDbDao;
 
+import javax.validation.constraints.Positive;
 import java.util.List;
 
 @Service
+@Validated
 public class DirectorService {
 
 	private final DirectorDao directorDao;
@@ -24,7 +27,7 @@ public class DirectorService {
 		return directorDao.getAllDirectors();
 	}
 
-	public Director getDirectorById(int directorId) {
+	public Director getDirectorById(@Positive int directorId) {
 		return directorDao.getDirectorById(directorId)
 				.orElseThrow(()->new DirectorNotFoundException("Director with id = " + directorId + " not found."));
 	}
@@ -42,7 +45,7 @@ public class DirectorService {
 		return directorDao.updateDirector(director);
 	}
 
-	public void deleteDirector(int id) {
+	public void deleteDirector(@Positive int id) {
 		directorDao.deleteDirector(id);
 	}
 }

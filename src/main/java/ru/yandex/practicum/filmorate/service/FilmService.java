@@ -7,7 +7,6 @@ import org.springframework.validation.annotation.Validated;
 import ru.yandex.practicum.filmorate.exceptions.SortingIsNotSupportedException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.exceptions.director.DirectorNotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.film.FilmBadParameterException;
 import ru.yandex.practicum.filmorate.exceptions.film.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.user.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.*;
@@ -21,7 +20,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 //отвечает за операции с фильмами, — добавление и удаление лайка, вывод 10 наиболее популярных фильмов
 // по количеству лайков. Пусть пока каждый пользователь может поставить лайк фильму только один раз.
@@ -155,21 +153,6 @@ public class FilmService {
         return true;
     }
 
-    //проверка корректности значений filmId
-    private boolean isValidUserId(long userId) {
-        if (userId <= 0) {
-            throw new UserNotFoundException("Некорректный id пользователя.");
-        }
-        return true;
-    }
-
-    //проверка корректности параметров вывода фильмов
-    private boolean isValidAboveZero(long param) {
-        if (param < 0) {
-            throw new FilmBadParameterException("Некорректное значение параметра.");
-        }
-        return true;
-    }
     //проверка наличие видов рейтингов добавляемого/обновляемого фильма в БД
     private void validateRatingsMpa(int mpaId) {
         MPA ratingMpa = mpaDao.getRating(mpaId);
