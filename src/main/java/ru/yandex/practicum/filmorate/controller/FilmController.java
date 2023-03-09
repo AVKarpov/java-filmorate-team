@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
@@ -42,10 +41,6 @@ public class FilmController {
         filmService.deleteFilm(filmId);
     }
 
-    @GetMapping( "/popular") //films/popular?count={limit}&genreId={genreId}&year={year}
-    public List<Film> getPopularFilmGenreIdYear(@RequestParam (defaultValue = "10") Integer count, @RequestParam (defaultValue = "0") Integer year){
-        return filmService.getPopularFilmGenreIdYear(count, genreId, year);
-    }
     //получение фильма по id
     @GetMapping("/{id}")
     protected Film getFilm(@PathVariable("id") long filmId) {
@@ -72,11 +67,11 @@ public class FilmController {
         filmService.deleteLike(filmId, userId);
     }
 
-    //вернуть самые популярные фильмы
-    @GetMapping("/popular")
-    protected List<Film> getPopularFilms(@RequestParam(defaultValue = "10", required = false) Long count) {
-        log.info("1.Запрос на получение {} популярных фильмов...", count);
-        return filmService.getPopularFilms(count);
+    @GetMapping( "/popular") //films/popular?count={limit}&genreId={genreId}&year={year}
+    public List<Film> getPopularFilmGenreIdYear(@RequestParam (defaultValue = "10",required = false) Optional<String> count,
+                                                @RequestParam (defaultValue = "0",required = false) Optional<String> genreId,
+                                                @RequestParam (defaultValue = "0",required = false) Optional<String> year){
+        return filmService.getPopularFilmGenreIdYear(count, genreId, year);
     }
 
     //вернуть общие фильмы для пользователей

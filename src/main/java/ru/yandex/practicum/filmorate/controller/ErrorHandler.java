@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.exceptions.SortingIsNotSupportedException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.exceptions.director.DirectorAlreadyExistException;
 import ru.yandex.practicum.filmorate.exceptions.director.DirectorNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.film.FilmBadParameterException;
 import ru.yandex.practicum.filmorate.exceptions.film.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.genre.GenreNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.mpa.MpaNotFoundException;
@@ -33,6 +34,12 @@ public class ErrorHandler {
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleFilmBadParameterException(final FilmBadParameterException e) {
+        return new ErrorResponse("параметры запроса популярных фильмов", e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleReviewNotFoundException(final ReviewNotFoundException e) {
         return new ErrorResponse("id пользователя", e.getMessage());
     }
@@ -54,13 +61,11 @@ public class ErrorHandler {
         return new ErrorResponse("некорректный параметр", e.getMessage());
     }
 
-
     @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleOtherThrows(final Throwable e) {
         return new ErrorResponse("иные ошибки", e.getMessage());
     }
-
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
