@@ -1,11 +1,15 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Positive;
 import java.util.List;
 import java.util.Optional;
 
@@ -68,16 +72,16 @@ public class FilmController {
     }
 
     @GetMapping( "/popular") //films/popular?count={limit}&genreId={genreId}&year={year}
-    public List<Film> getPopularFilmGenreIdYear(@RequestParam (defaultValue = "10",required = false) Optional<String> count,
-                                                @RequestParam (defaultValue = "0",required = false) Optional<String> genreId,
-                                                @RequestParam (defaultValue = "0",required = false) Optional<String> year){
+    public List<Film> getPopularFilmGenreIdYear(@RequestParam (defaultValue = "10",required = false) long count,
+                                                @RequestParam (defaultValue = "0",required = false) long genreId,
+                                                @RequestParam (defaultValue = "0",required = false) long year){
         return filmService.getPopularFilmGenreIdYear(count, genreId, year);
     }
 
     //вернуть общие фильмы для пользователей
     //GET /films/common?userId={userId}&friendId={friendId}
     @GetMapping("/common")
-    protected List<Film> getCommonFilms(@RequestParam Optional<String> userId,@RequestParam Optional<String> friendId) {
+    protected List<Film> getCommonFilms(@RequestParam long userId, @RequestParam long friendId) {
         log.info("FilmController: Запрос на получение общих фильмов пользователей с userId={} и friendId={}..."
                 , userId,friendId);
         return filmService.getCommonFilms(userId,friendId);
@@ -94,7 +98,6 @@ public class FilmController {
     @GetMapping("/search")
     protected List<Film> searchFilms(@RequestParam(name = "query") Optional<String> query,
                                      @RequestParam(required = false, name = "by") List<String> by) {
-        log.info("Запрос на поиск фильмов...");
         return filmService.searchFilms(query, by);
     }
 }

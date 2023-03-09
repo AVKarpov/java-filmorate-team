@@ -49,7 +49,6 @@ public class DirectorDbDao implements DirectorDao {
 		List<Director> directors=jdbcTemplate.query(sql, (rs, rowNum) -> makeDirector(rs));
 		log.debug("Получен список из {} режиссеров.", directors.size());
 		log.debug("Режиссеры: {}.", directors.toString());
-//		return jdbcTemplate.query(sql, (rs, rowNum) -> makeDirector(rs));
 		return directors;
 	}
 

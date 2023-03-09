@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.feed.Feed;
@@ -14,7 +13,6 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/users")
-@Qualifier("userDbDao")
 @Slf4j
 public class UserController {
 
@@ -70,7 +68,8 @@ public class UserController {
 
     //список друзей, общих с другим пользователем.
     @GetMapping("/{id}/friends/common/{otherId}")
-    private List<User> getOtherFriends(@PathVariable("id") long userId, @PathVariable("otherId") long otherId) {
+    private List<User> getOtherFriends(@PathVariable("id") long userId,
+                                       @PathVariable("otherId") long otherId) {
         log.info("Получен запрос на поиск общих друзей для пользователей с userId={} и otherId={}.", userId, otherId);
         return userService.getCommonFriends(userId, otherId);
     }
@@ -84,7 +83,7 @@ public class UserController {
 
     //вывод рекомендуемых фильмов для пользователя
     @GetMapping("/{id}/recommendations")
-    private List<Film> getRecommendations(@PathVariable("id") Optional<String> userId) {
+    private List<Film> getRecommendations(@PathVariable("id") long userId) {
         log.info("UserController: получен запрос на вывод рекомендаций фильмов для userId={}.", userId);
         return userService.getRecommendations(userId);
     }
