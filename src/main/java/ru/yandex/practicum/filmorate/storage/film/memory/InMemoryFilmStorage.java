@@ -47,8 +47,8 @@ public class InMemoryFilmStorage implements FilmDao {
         if(film.getGenres()!=null) {
             TreeSet<Genre> genresNewFilm=new TreeSet<>((o1,o2)->o1.getId()-o2.getId());
             for(Genre gr:film.getGenres()) {
-                if(genreDao.getGenge(gr.getId())!=null) {
-                    genresNewFilm.add(genreDao.getGenge(gr.getId()));
+                if(genreDao.getGenre(gr.getId())!=null) {
+                    genresNewFilm.add(genreDao.getGenre(gr.getId()));
                 } else {
                     throw new GenreNotFoundException("Жанр с id="+gr.getId()+" не найден.");
                 }
@@ -77,8 +77,8 @@ public class InMemoryFilmStorage implements FilmDao {
             if(film.getGenres()!=null) {
                 TreeSet<Genre> genresNewFilm=new TreeSet<>((o1,o2)->o1.getId()-o2.getId());
                 for(Genre gr:film.getGenres()) {
-                    if(genreDao.getGenge(gr.getId())!=null) {
-                        genresNewFilm.add(genreDao.getGenge(gr.getId()));
+                    if(genreDao.getGenre(gr.getId())!=null) {
+                        genresNewFilm.add(genreDao.getGenre(gr.getId()));
                     } else {
                         throw new GenreNotFoundException("Жанр с id="+gr.getId()+" не найден.");
                     }

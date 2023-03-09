@@ -26,7 +26,7 @@ public class InMemoryGenreDao implements GenreDao {
     ));
 
     @Override
-    public Genre getGenge(int id) {
+    public Genre getGenre(int id) {
         if (this.genres.containsKey(id)) {
             return new Genre(id, this.genres.get(id));
         }
@@ -34,7 +34,7 @@ public class InMemoryGenreDao implements GenreDao {
     }
 
     @Override
-    public List<Genre> getGengesFilm(long filmId) {
+    public List<Genre> getGenresFilm(long filmId) {
         if(genresFilms.containsKey(filmId)) {
             return genresFilms.get(filmId).stream()
                     .sorted((g1,g2)->g1.getId()-g2.getId())

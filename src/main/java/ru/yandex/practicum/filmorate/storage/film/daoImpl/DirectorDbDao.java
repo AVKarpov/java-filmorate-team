@@ -31,10 +31,7 @@ public class DirectorDbDao implements DirectorDao {
 	@Override
 	public Optional<Director> getDirectorById(int directorId) {
 		log.debug("Request to get director by id = {} from DB.", directorId);
-
-		String sql = "SELECT * " +
-				"FROM directors " +
-				"WHERE director_id = ?;";
+		String sql = "SELECT * FROM directors WHERE director_id = ?";
 		List<Director> directors = jdbcTemplate.query(sql, (rs, rowNum) -> makeDirector(rs), directorId);
 		if (directors.isEmpty())
 			return Optional.empty();
@@ -45,10 +42,10 @@ public class DirectorDbDao implements DirectorDao {
 	@Override
 	public List<Director> getAllDirectors() {
 		log.debug("Request to get all directors from DB.");
-		String sql = "SELECT * FROM directors;";
-		List<Director> directors=jdbcTemplate.query(sql, (rs, rowNum) -> makeDirector(rs));
+		String sql = "SELECT * FROM directors";
+		List<Director> directors = jdbcTemplate.query(sql, (rs, rowNum) -> makeDirector(rs));
 		log.debug("Получен список из {} режиссеров.", directors.size());
-		log.debug("Режиссеры: {}.", directors.toString());
+		log.debug("Режиссеры: {}.", directors);
 		return directors;
 	}
 
@@ -58,9 +55,7 @@ public class DirectorDbDao implements DirectorDao {
 		if (contains(director))
 			throw new DirectorAlreadyExistException("Director with name = " + director.getName()
 					+ " is already exist.");
-
-		String sql = "INSERT INTO directors (name) VALUES (?);";
-
+		String sql = "INSERT INTO directors (name) VALUES (?)";
 		KeyHolder keyHolder = new GeneratedKeyHolder();
 		jdbcTemplate.update(
 				connection -> {
@@ -72,15 +67,13 @@ public class DirectorDbDao implements DirectorDao {
 				keyHolder);
 		int directorId = keyHolder.getKey().intValue();
 		director.setId(directorId);
-
 		return director;
 	}
 
 	@Override
 	public Director updateDirector(Director director) {
 		log.debug("Request to update director into DB.");
-
-		String sql = "UPDATE directors SET name = ? WHERE director_id = ?;";
+		String sql = "UPDATE directors SET name = ? WHERE director_id = ?";
 		jdbcTemplate.update(sql, director.getName(), director.getId());
 
 		return director;
@@ -89,18 +82,13 @@ public class DirectorDbDao implements DirectorDao {
 	@Override
 	public void deleteDirector(int directorId) {
 		log.debug("Request to delete director by id = {} from DB.", directorId);
-
-		String sql = "DELETE FROM directors " +
-				"WHERE director_id = ?;";
+		String sql = "DELETE FROM directors WHERE director_id = ?";
 		jdbcTemplate.update(sql, directorId);
 	}
 
 	private boolean contains(Director director) {
 		log.debug("Checking that the director with name = {} is in DB.", director.getName());
-
-		String sql = "SELECT * " +
-				"FROM directors " +
-				"WHERE name = ?;";
+		String sql = "SELECT * FROM directors WHERE name = ?";
 		SqlRowSet directorRow = jdbcTemplate.queryForRowSet(sql, director.getName());
 		return directorRow.next();
 	}

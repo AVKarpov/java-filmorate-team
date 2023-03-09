@@ -26,13 +26,9 @@ public class MpaDbDao implements MpaDao {
     @Override
     public MPA getRating(int id) {
         log.debug("Получен запрос на поиск рейтинга MPA с id={}", id);
-        String getMpaSql = "select rating_id,rating_name from ratings_mpa where rating_id = ?";
-        MPA mpa = jdbcTemplate.query(getMpaSql, (rs, rowNum) -> mpaMapper(rs), id).stream().findAny().orElse(null);
-
-        if (mpa == null) {
-            log.debug("Рейтинг с id={} не найден.", id);
-            throw new MpaNotFoundException("Рейтинг MPA с id=" + id + " не найден.");
-        }
+        String getMpaSql = "SELECT rating_id, rating_name FROM ratings_mpa WHERE rating_id = ?";
+        MPA mpa = jdbcTemplate.query(getMpaSql, (rs, rowNum) -> mpaMapper(rs), id)
+                .stream().findAny().orElseThrow(()->new MpaNotFoundException("Рейтинг MPA с id=" + id + " не найден."));
         log.debug("Рейтинг с id={} найден.", id);
         return mpa;
     }
@@ -48,9 +44,9 @@ public class MpaDbDao implements MpaDao {
     }
 
     private MPA mpaMapper(ResultSet rs) throws SQLException {
-        //перебираем записи результирующего набора
-        int id = rs.getInt("rating_id");
-        String name = rs.getString("rating_name");
-        return new MPA(id, name);
+        return MPA.builder()
+                .id(rs.getInt("rating_id"))
+                .name(rs.getString("rating_name"))
+                .build();
     }
 }

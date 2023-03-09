@@ -10,8 +10,6 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.feed.EventType;
 import ru.yandex.practicum.filmorate.model.feed.OperationType;
 import ru.yandex.practicum.filmorate.storage.film.dao.FilmLikeDao;
-import ru.yandex.practicum.filmorate.storage.film.dao.GenreDao;
-import ru.yandex.practicum.filmorate.storage.film.dao.MpaDao;
 
 import java.util.List;
 
@@ -21,20 +19,14 @@ import java.util.List;
 public class FilmLikeDbDao implements FilmLikeDao {
 
     private final JdbcTemplate jdbcTemplate;
-    private final MpaDao mpaDao;
-    private final GenreDao genreDao;
     private final FilmDbDao filmDbDao;
     private final FeedDbDao feedDbDao;
 
-    public FilmLikeDbDao(JdbcTemplate jdbcTemplate
-                        ,@Qualifier("mpaDbDao") MpaDao mpaDao
-                        ,@Qualifier("genreDbDao") GenreDao genreDao
-                        ,@Qualifier("filmDbStorage") FilmDbDao filmDbDao
-                        ,@Qualifier("feedDbDao") FeedDbDao feedDbDao) {
+    public FilmLikeDbDao(JdbcTemplate jdbcTemplate,
+                        @Qualifier("filmDbStorage") FilmDbDao filmDbDao,
+                        @Qualifier("feedDbDao") FeedDbDao feedDbDao) {
         this.jdbcTemplate = jdbcTemplate;
-        this.mpaDao = mpaDao;
-        this.genreDao = genreDao;
-        this.filmDbDao=filmDbDao;
+        this.filmDbDao = filmDbDao;
         this.feedDbDao = feedDbDao;
     }
 
@@ -52,55 +44,54 @@ public class FilmLikeDbDao implements FilmLikeDao {
             }
         }
         feedDbDao.addFeed(userId, EventType.LIKE, OperationType.ADD, filmId);
-        log.debug("Для фильма с id={} добавлен лайк пользователем с id={}.",filmId,userId);
+        log.debug("Для фильма с id={} добавлен лайк пользователем с id={}.", filmId, userId);
     }
 
     //удалить лайки фильмам из таблицы films_like
     @Override
     public void deleteLike(long filmId, long userId) {
         try{
-            String delSql="delete from  FILMS_LIKE where film_id=? AND user_id=?;";
-            Object[] args = new Object[] {filmId,userId};
-            int delRow=jdbcTemplate.update(delSql, args);
-            if (delRow<=0) {
-                log.debug("Ошибка удаления для фильма с id={} лайка от пользователя с id={}.",filmId,userId);
-                throw new FilmNotFoundException("Фильм с id="+filmId+" или пользователь с id="+userId+" не найден.");
+            String delSql = "DELETE FROM films_like WHERE film_id = ? AND user_id = ?";
+            int delRow=jdbcTemplate.update(delSql, filmId, userId);
+            if (delRow <= 0) {
+                log.debug("Ошибка удаления для фильма с id={} лайка от пользователя с id={}.", filmId, userId);
+                throw new FilmNotFoundException("Фильм с id=" + filmId + " или пользователь с id=" + userId + " не найден.");
             }
         } catch (RuntimeException e) {
             log.debug("Возникло исключение: фильм или пользователь не найдены.");
             throw new FilmNotFoundException("Фильм с id="+filmId+" или пользователь с id="+userId+" не найден.");
         }
         feedDbDao.addFeed(userId, EventType.LIKE, OperationType.REMOVE, filmId);
-        log.debug("Для фильма с id={} удалён лайк пользователем с id={}.",filmId,userId);
+        log.debug("Для фильма с id={} удалён лайк пользователем с id={}.", filmId, userId);
     }
 
     @Override
     public List<Film> getRecomendationFilm(long userId) {
-        String getSql = "SELECT a.film_id,count(fl.FILM_ID) rating\n" +
-                "FROM (SELECT DISTINCT fl.film_id\n" +
-                "FROM (\n" +
-                "SELECT gcf.user_id\n" +
-                "FROM (SELECT ccf.user_id\n" +
-                ",ccf.count_films\n" +
-                ",RANK() OVER(ORDER BY count_films desc) AS group_num\n" +
-                "FROM (\n" +
-                "SELECT fl.USER_ID\n" +
-                ",count(*) AS count_films\n" +
-                "FROM (SELECT FILM_ID FROM films_like WHERE USER_ID =?) AS US\n" +
-                "INNER JOIN \n" +
-                "films_like AS FL ON us.film_id=fl.FILM_ID\n" +
-                "WHERE fl.USER_ID <>?\n" +
-                "GROUP BY fl.USER_ID ) ccf\n" +
-                ") gcf\n" +
-                "WHERE gcf.group_num=1\n" +
-                ") ou\n" +
-                "LEFT JOIN films_like fl ON ou.user_id=fl.user_id\n" +
-                "LEFT JOIN (SELECT FILM_ID FROM films_like WHERE USER_ID =?) us\n" +
-                "ON fl.film_id=us.film_id \n" +
-                "WHERE us.film_id IS NULL ) a\n" +
-                "LEFT JOIN FILMS_LIKE fl ON a.film_id=fl.FILM_ID \n" +
-                "GROUP BY fl.FILM_ID\n";
-        Object[] args = new Object[]{userId,userId,userId};
-        return filmDbDao.getFilmsRatingSort(getSql,args);
+        String getSql = "SELECT a.film_id " +
+                "FROM (SELECT DISTINCT fl.film_id " +
+                "FROM (" +
+                "SELECT gcf.user_id " +
+                "FROM (SELECT ccf.user_id, " +
+                "ccf.count_films, " +
+                "RANK() OVER(ORDER BY count_films desc) AS group_num " +
+                "FROM (" +
+                "SELECT fl.USER_ID, " +
+                "count(*) AS count_films " +
+                "FROM (SELECT FILM_ID FROM films_like WHERE USER_ID = ? ) AS us " +
+                "INNER JOIN " +
+                "films_like AS FL ON us.film_id = fl.film_id " +
+                "WHERE fl.user_id <> ? " +
+                "GROUP BY fl.user_id) ccf " +
+                ") gcf " +
+                "WHERE gcf.group_num = 1 " +
+                ") ou " +
+                "LEFT JOIN films_like fl ON ou.user_id = fl.user_id " +
+                "LEFT JOIN (SELECT film_id FROM films_like WHERE user_id = ? ) us " +
+                "ON fl.film_id = us.film_id " +
+                "WHERE us.film_id IS NULL) a " +
+                "LEFT JOIN films_like fl ON a.film_id = fl.film_id " +
+                "GROUP BY fl.film_id ORDER BY COUNT(fl.film_id) DESC";
+        return filmDbDao.getFilms(jdbcTemplate.query(getSql, (rs, rowNum) -> rs.getLong("film_id"),
+                userId, userId, userId));
     }
 }
