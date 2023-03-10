@@ -108,12 +108,11 @@ public class UserService {
         return feedDbDao.getFeed(userId);
     }
 
-    private boolean validationIdUser(long userId) {
+    private void validationIdUser(long userId) {
         if (userId <= 0) {
             throw new UserNotFoundException("Некорректный id=" + userId + " пользователя.");
         }
         log.debug("Валидация пользователя с id={} прошла успешно.", userId);
-        return true;
     }
 
     //проверяет не равныли id пользователя и друга

@@ -146,11 +146,10 @@ public class FilmService {
     }
 
     //проверка корректности значений filmId
-    private boolean validateFilmId(long filmId) {
+    private void validateFilmId(long filmId) {
         if (filmId <= 0) {
             throw new FilmNotFoundException("Некорректный id фильма.");
         }
-        return true;
     }
 
     //проверка наличие видов рейтингов добавляемого/обновляемого фильма в БД
@@ -182,11 +181,10 @@ public class FilmService {
     }
 
     //проверяет не равныли id пользователя и друга
-    public boolean validationNotEqualIdUser(long userId, long friendId) {
+    public void validationNotEqualIdUser(long userId, long friendId) {
         if (userId == friendId) {
             throw new UserNotFoundException("Пользователь с id=" + userId + " не может добавить сам себя в друзья.");
         }
-        return true;
     }
 
     public List<Film> searchFilms(Optional<String> query, List<String> by) {
