@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
+import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.exceptions.user.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.feed.Feed;
@@ -39,6 +40,7 @@ public class UserService {
     //добавление пользователя
     public User addUser(User user) {
         log.info("Получен запрос на добавление пользователя...");
+        log.debug("Получен для долбавления пользователь с id="+user.getId());
         return userStorage.addUser(user);
     }
 
@@ -110,7 +112,7 @@ public class UserService {
 
     private void validationIdUser(long userId) {
         if (userId <= 0) {
-            throw new UserNotFoundException("Некорректный id=" + userId + " пользователя.");
+            throw new ValidationException("Некорректный id=" + userId + " пользователя.");
         }
         log.debug("Валидация пользователя с id={} прошла успешно.", userId);
     }

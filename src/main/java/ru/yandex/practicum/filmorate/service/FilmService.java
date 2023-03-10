@@ -148,7 +148,7 @@ public class FilmService {
     //проверка корректности значений filmId
     private void validateFilmId(long filmId) {
         if (filmId <= 0) {
-            throw new FilmNotFoundException("Некорректный id фильма.");
+            throw new ValidationException("Некорректный id фильма.");
         }
     }
 
